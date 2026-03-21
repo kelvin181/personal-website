@@ -5,7 +5,10 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:nicolalc.github.io)"
     ]
   }
 }
