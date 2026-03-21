@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { isFile } from "@/lib/filesystem/types";
 import { updateFileContent } from "@/store/filesystemSlice";
@@ -16,6 +16,8 @@ export default function TextViewer({ fileId }: TextViewerProps) {
   const [draft, setDraft] = useState("");
   const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
   const [prevFileId, setPrevFileId] = useState(fileId);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCursorRef = useRef<string | null>(null);
 
   const node = fileId ? fs.nodes[fileId] : undefined;
   const validNode = node && isFile(node) ? node : undefined;
@@ -46,6 +48,26 @@ export default function TextViewer({ fileId }: TextViewerProps) {
 
     return () => clearTimeout(timer);
   }, [draft, fileId, dispatch, validNode]);
+
+  // Focus textarea and position cursor when switching to raw mode
+  useEffect(() => {
+    if (mdMode !== "raw") return;
+    const search = pendingCursorRef.current;
+    pendingCursorRef.current = null;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.focus();
+    if (search) {
+      const idx = draft.indexOf(search);
+      if (idx !== -1) textarea.setSelectionRange(idx, idx);
+    }
+  }, [mdMode, draft]);
+
+  function handlePreviewDoubleClick() {
+    const selected = window.getSelection()?.toString().trim() ?? "";
+    pendingCursorRef.current = selected || null;
+    setMdMode("raw");
+  }
 
   if (!fileId) {
     return (
@@ -95,11 +117,12 @@ export default function TextViewer({ fileId }: TextViewerProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {mdMode === "preview" ? (
-            <div className="p-4">
+            <div className="p-4 cursor-text" onDoubleClick={handlePreviewDoubleClick}>
               <MarkdownRenderer content={validNode.content} />
             </div>
           ) : (
             <textarea
+              ref={textareaRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               className="w-full h-full p-4 bg-transparent text-terminal-text text-sm resize-none outline-none"
