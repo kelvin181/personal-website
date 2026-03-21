@@ -8,6 +8,7 @@ import {
   updateFileContent as fsUpdateContent,
   renameNode as fsRenameNode,
   moveNode as fsMoveNode,
+  copyNode as fsCopyNode,
 } from "@/lib/filesystem/operations";
 
 const initialState: FileSystem = createInitialFileSystem();
@@ -45,6 +46,11 @@ const filesystemSlice = createSlice({
       const result = fsMoveNode(state, nodeId, newParentId);
       state.nodes = result.nodes;
     },
+    copyNode(state, action: PayloadAction<{ nodeId: NodeId; newParentId: NodeId }>) {
+      const { nodeId, newParentId } = action.payload;
+      const result = fsCopyNode(state, nodeId, newParentId);
+      state.nodes = result.nodes;
+    },
     resetFilesystem() {
       return createInitialFileSystem();
     },
@@ -58,6 +64,7 @@ export const {
   updateFileContent,
   renameNode,
   moveNode,
+  copyNode,
   resetFilesystem,
 } = filesystemSlice.actions;
 

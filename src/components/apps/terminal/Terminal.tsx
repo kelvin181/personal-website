@@ -4,7 +4,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { pushHistory, setHistoryIndex, setCwd } from "@/store/sessionSlice";
 import { openWindow } from "@/store/windowsSlice";
-import { createFile, createDirectory, deleteNode } from "@/store/filesystemSlice";
+import {
+  createFile,
+  createDirectory,
+  deleteNode,
+  copyNode,
+  renameNode,
+  moveNode,
+} from "@/store/filesystemSlice";
 import { executeCommand, OutputLine } from "@/lib/terminal/commands";
 import { MOTD } from "@/lib/terminal/motd";
 import TerminalOutput from "./TerminalOutput";
@@ -54,6 +61,9 @@ export default function Terminal() {
         createFile: (parentId, name, content) => dispatch(createFile({ parentId, name, content })),
         createDirectory: (parentId, name) => dispatch(createDirectory({ parentId, name })),
         deleteNode: (nodeId) => dispatch(deleteNode(nodeId)),
+        copyNode: (nodeId, newParentId) => dispatch(copyNode({ nodeId, newParentId })),
+        renameNode: (nodeId, newName) => dispatch(renameNode({ nodeId, newName })),
+        moveNode: (nodeId, newParentId) => dispatch(moveNode({ nodeId, newParentId })),
       });
 
       setOutputLines((prev) => [...prev, promptLine, ...result]);

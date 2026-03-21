@@ -172,6 +172,62 @@ export function moveNode(fs: FileSystem, nodeId: NodeId, newParentId: NodeId): F
   };
 }
 
+export function copyNode(fs: FileSystem, nodeId: NodeId, newParentId: NodeId): FileSystem {
+  const node = fs.nodes[nodeId];
+  if (!node) return fs;
+
+  const newParent = fs.nodes[newParentId];
+  if (!newParent || !isDirectory(newParent)) return fs;
+
+  // Check for name collision
+  const exists = newParent.childIds.some((id) => fs.nodes[id]?.name === node.name);
+  if (exists) return fs;
+
+  const newNodes = { ...fs.nodes };
+
+  function deepCopy(srcId: NodeId, destParentId: NodeId): NodeId {
+    const src = fs.nodes[srcId];
+    if (!src) return srcId;
+
+    const now = Date.now();
+    const newId = uuidv4();
+
+    if (isFile(src)) {
+      const copy: FSFile = {
+        ...src,
+        id: newId,
+        parentId: destParentId,
+        createdAt: now,
+        modifiedAt: now,
+      };
+      newNodes[newId] = copy;
+    } else if (isDirectory(src)) {
+      const newChildIds = src.childIds.map((childId) => deepCopy(childId, newId));
+      const copy: FSDirectory = {
+        ...src,
+        id: newId,
+        parentId: destParentId,
+        childIds: newChildIds,
+        createdAt: now,
+        modifiedAt: now,
+      };
+      newNodes[newId] = copy;
+    }
+
+    return newId;
+  }
+
+  const copiedId = deepCopy(nodeId, newParentId);
+
+  // Add to new parent's childIds
+  newNodes[newParentId] = {
+    ...newParent,
+    childIds: [...newParent.childIds, copiedId],
+  };
+
+  return { ...fs, nodes: newNodes };
+}
+
 export function getChildren(fs: FileSystem, dirId: NodeId): FSNode[] {
   const dir = fs.nodes[dirId];
   if (!dir || !isDirectory(dir)) return [];

@@ -3,6 +3,7 @@ import filesystemReducer from "./filesystemSlice";
 import windowsReducer from "./windowsSlice";
 import sessionReducer from "./sessionSlice";
 import desktopReducer from "./desktopSlice";
+import clipboardReducer from "./clipboardSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     windows: windowsReducer,
     session: sessionReducer,
     desktop: desktopReducer,
+    clipboard: clipboardReducer,
   },
 });
 
