@@ -1,5 +1,5 @@
 import { FileSystem, isDirectory, NodeId } from "@/lib/filesystem/types";
-import { getNodeByPath, normalizePath } from "@/lib/filesystem/utils";
+import { getNodeByPath, normalizePath, getParentPath, getBasename } from "@/lib/filesystem/utils";
 import { getChildren, resolvePathToId } from "@/lib/filesystem/operations";
 import { AppType } from "@/store/windowsSlice";
 import { profile } from "@/content/data/profile";
@@ -23,6 +23,9 @@ interface CommandContext {
   createFile: (parentId: NodeId, name: string, content?: string) => void;
   createDirectory: (parentId: NodeId, name: string) => void;
   deleteNode: (nodeId: NodeId) => void;
+  copyNode: (nodeId: NodeId, newParentId: NodeId) => void;
+  renameNode: (nodeId: NodeId, newName: string) => void;
+  moveNode: (nodeId: NodeId, newParentId: NodeId) => void;
   dispatch: unknown;
 }
 
@@ -150,6 +153,101 @@ const cmdOpen: CommandHandler = (args, ctx) => {
 
   ctx.openWindow("text-viewer", { fileId: node.id, filePath: path, title: node.name });
   return [{ text: `Opening ${node.name}`, type: "info" }];
+};
+
+const cmdCp: CommandHandler = (args, ctx) => {
+  const recursive = args.includes("-r") || args.includes("-R");
+  const paths = args.filter((a) => !a.startsWith("-"));
+
+  if (paths.length < 2) return [{ text: "cp: missing operand", type: "error" }];
+
+  const srcPath = resolvePath(ctx.cwd, paths[0]);
+  const destPath = resolvePath(ctx.cwd, paths[1]);
+
+  const srcNode = getNodeByPath(ctx.fs, srcPath);
+  if (!srcNode)
+    return [{ text: `cp: cannot stat '${paths[0]}': No such file or directory`, type: "error" }];
+
+  if (isDirectory(srcNode) && !recursive)
+    return [{ text: `cp: -r not specified; omitting directory '${paths[0]}'`, type: "error" }];
+
+  // If destination is an existing directory, copy into it
+  const destNode = getNodeByPath(ctx.fs, destPath);
+  if (destNode && isDirectory(destNode)) {
+    ctx.copyNode(srcNode.id, destNode.id);
+    return [];
+  }
+
+  // Otherwise, treat destination as parent + new name
+  const destParentPath = getParentPath(destPath);
+  const destName = getBasename(destPath);
+  const destParent = getNodeByPath(ctx.fs, destParentPath);
+
+  if (!destParent || !isDirectory(destParent))
+    return [{ text: `cp: cannot create '${paths[1]}': No such file or directory`, type: "error" }];
+
+  // Copy into parent, then rename the copy
+  ctx.copyNode(srcNode.id, destParent.id);
+  // If the name differs, we need to rename — but we don't have the new ID
+  // For simplicity, if the name is different, warn
+  if (destName !== srcNode.name) {
+    // Find the newly copied node by name in the parent
+    const updatedParent = ctx.fs.nodes[destParent.id];
+    if (updatedParent && isDirectory(updatedParent)) {
+      const copiedId = updatedParent.childIds.find(
+        (id) => ctx.fs.nodes[id]?.name === srcNode.name && id !== srcNode.id
+      );
+      if (copiedId) {
+        ctx.renameNode(copiedId, destName);
+      }
+    }
+  }
+  return [];
+};
+
+const cmdMv: CommandHandler = (args, ctx) => {
+  const paths = args.filter((a) => !a.startsWith("-"));
+
+  if (paths.length < 2) return [{ text: "mv: missing operand", type: "error" }];
+
+  const srcPath = resolvePath(ctx.cwd, paths[0]);
+  const destPath = resolvePath(ctx.cwd, paths[1]);
+
+  const srcNode = getNodeByPath(ctx.fs, srcPath);
+  if (!srcNode)
+    return [{ text: `mv: cannot stat '${paths[0]}': No such file or directory`, type: "error" }];
+
+  // If destination is an existing directory, move into it
+  const destNode = getNodeByPath(ctx.fs, destPath);
+  if (destNode && isDirectory(destNode)) {
+    ctx.moveNode(srcNode.id, destNode.id);
+    return [];
+  }
+
+  // Otherwise, check if it's a rename (same parent, new name)
+  const destParentPath = getParentPath(destPath);
+  const destName = getBasename(destPath);
+  const destParent = getNodeByPath(ctx.fs, destParentPath);
+
+  if (!destParent || !isDirectory(destParent))
+    return [
+      {
+        text: `mv: cannot move '${paths[0]}' to '${paths[1]}': No such file or directory`,
+        type: "error",
+      },
+    ];
+
+  // If same parent directory, just rename
+  if (srcNode.parentId === destParent.id) {
+    ctx.renameNode(srcNode.id, destName);
+  } else {
+    // Move to new parent, then rename if needed
+    ctx.moveNode(srcNode.id, destParent.id);
+    if (destName !== srcNode.name) {
+      ctx.renameNode(srcNode.id, destName);
+    }
+  }
+  return [];
 };
 
 // --- Portfolio Commands ---
@@ -319,6 +417,8 @@ const HELP_TEXT: Record<string, string> = {
   mkdir: "mkdir <name>  —  Create a new directory",
   touch: "touch <name>  —  Create an empty file",
   rm: "rm [-r] <path>  —  Remove a file or directory",
+  cp: "cp [-r] <source> <dest>  —  Copy a file or directory",
+  mv: "mv <source> <dest>  —  Move or rename a file or directory",
   echo: "echo <text>  —  Print text",
   open: "open <path>  —  Open a file in the text viewer or directory in file manager",
   clear: "clear  —  Clear the terminal",
@@ -355,7 +455,20 @@ const cmdHelp: CommandHandler = (args) => {
     { text: "  Linux Commands:", type: "info" },
   ];
 
-  const linuxCmds = ["ls", "cd", "pwd", "cat", "mkdir", "touch", "rm", "echo", "open", "clear"];
+  const linuxCmds = [
+    "ls",
+    "cd",
+    "pwd",
+    "cat",
+    "mkdir",
+    "touch",
+    "rm",
+    "cp",
+    "mv",
+    "echo",
+    "open",
+    "clear",
+  ];
   for (const cmd of linuxCmds) {
     lines.push({ text: `    ${HELP_TEXT[cmd]}`, type: "output" });
   }
@@ -395,6 +508,8 @@ const COMMANDS: Record<string, CommandHandler> = {
   mkdir: cmdMkdir,
   touch: cmdTouch,
   rm: cmdRm,
+  cp: cmdCp,
+  mv: cmdMv,
   echo: cmdEcho,
   open: cmdOpen,
   help: cmdHelp,
