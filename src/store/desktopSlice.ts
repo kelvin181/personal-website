@@ -15,10 +15,12 @@ export const WALLPAPERS: WallpaperOption[] = [
 
 interface DesktopState {
   wallpaper: string;
+  wallpaperNodeId: string | null;
 }
 
 const initialState: DesktopState = {
   wallpaper: "dark",
+  wallpaperNodeId: null,
 };
 
 const desktopSlice = createSlice({
@@ -27,10 +29,15 @@ const desktopSlice = createSlice({
   reducers: {
     setWallpaper(state, action: PayloadAction<string>) {
       state.wallpaper = action.payload;
+      state.wallpaperNodeId = null;
+    },
+    setWallpaperNode(state, action: PayloadAction<string>) {
+      state.wallpaper = "custom";
+      state.wallpaperNodeId = action.payload;
     },
   },
 });
 
-export const { setWallpaper } = desktopSlice.actions;
+export const { setWallpaper, setWallpaperNode } = desktopSlice.actions;
 
 export default desktopSlice.reducer;

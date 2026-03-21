@@ -34,10 +34,20 @@ function AppContent({
 export default function Desktop() {
   const windows = useAppSelector((s) => s.windows.windows);
   const wallpaperKey = useAppSelector((s) => s.desktop.wallpaper);
+  const wallpaperNodeId = useAppSelector((s) => s.desktop.wallpaperNodeId);
+  const filesystem = useAppSelector((s) => s.filesystem);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
 
-  const wallpaper = WALLPAPERS.find((w) => w.key === wallpaperKey) ?? WALLPAPERS[0];
+  let backgroundStyle: string;
+  if (wallpaperKey === "custom" && wallpaperNodeId) {
+    const node = filesystem.nodes[wallpaperNodeId];
+    backgroundStyle =
+      node?.type === "file" ? `url(${node.content}) center/cover no-repeat` : WALLPAPERS[0].style;
+  } else {
+    const wallpaper = WALLPAPERS.find((w) => w.key === wallpaperKey) ?? WALLPAPERS[0];
+    backgroundStyle = wallpaper.style;
+  }
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     // Only open context menu when clicking on the desktop itself, not on child elements like windows
@@ -52,7 +62,7 @@ export default function Desktop() {
   return (
     <div
       className="relative h-screen w-screen overflow-hidden pb-10"
-      style={{ background: wallpaper.style }}
+      style={{ background: backgroundStyle }}
       onContextMenu={handleContextMenu}
     >
       {/* Desktop Icons */}

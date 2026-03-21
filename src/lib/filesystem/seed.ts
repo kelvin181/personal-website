@@ -201,6 +201,10 @@ ${profile.socials.linkedin ? `- LinkedIn: ${profile.socials.linkedin}` : ""}
 `;
   addChild(nodes, resumeDir.id, makeFile("resume.md", resumeDir.id, resumeContent));
 
+  // --- /home/user/Pictures ---
+  const picturesDir = makeDir("Pictures", user.id);
+  addChild(nodes, user.id, picturesDir);
+
   // --- /home/user/.bashrc (Easter egg) ---
   const bashrcContent = `# ~/.bashrc - kelvin-os configuration
 # This is a simulated OS. Have fun exploring!
