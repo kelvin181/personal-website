@@ -1,9 +1,13 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useAppSelector } from "@/store/hooks";
+import { WALLPAPERS } from "@/store/desktopSlice";
 import Window from "@/components/window/Window";
 import Taskbar from "@/components/taskbar/Taskbar";
 import DesktopIcon from "./DesktopIcon";
+import DesktopContextMenu from "./DesktopContextMenu";
+import WallpaperPicker from "./WallpaperPicker";
 import Terminal from "@/components/apps/terminal/Terminal";
 import FileManager from "@/components/apps/file-manager/FileManager";
 import TextViewer from "@/components/apps/text-viewer/TextViewer";
@@ -29,9 +33,28 @@ function AppContent({
 
 export default function Desktop() {
   const windows = useAppSelector((s) => s.windows.windows);
+  const wallpaperKey = useAppSelector((s) => s.desktop.wallpaper);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
+
+  const wallpaper = WALLPAPERS.find((w) => w.key === wallpaperKey) ?? WALLPAPERS[0];
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    // Only open context menu when clicking on the desktop itself, not on child elements like windows
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    }
+  }, []);
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-desktop-bg pb-10">
+    <div
+      className="relative h-screen w-screen overflow-hidden pb-10"
+      style={{ background: wallpaper.style }}
+      onContextMenu={handleContextMenu}
+    >
       {/* Desktop Icons */}
       <div className="absolute top-4 left-4 flex flex-col gap-1">
         <DesktopIcon appType="terminal" label="Terminal" icon=">_" />
@@ -44,6 +67,22 @@ export default function Desktop() {
           <AppContent appType={win.appType} appProps={win.appProps} />
         </Window>
       ))}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <DesktopContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={closeContextMenu}
+          onChangeWallpaper={() => {
+            setShowWallpaperPicker(true);
+            setContextMenu(null);
+          }}
+        />
+      )}
+
+      {/* Wallpaper Picker */}
+      {showWallpaperPicker && <WallpaperPicker onClose={() => setShowWallpaperPicker(false)} />}
 
       {/* Taskbar */}
       <Taskbar />
