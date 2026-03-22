@@ -50,7 +50,7 @@ export default function FileList({
       onClick={(e) => {
         // Clear selection when clicking empty space
         if (e.target === e.currentTarget) {
-          onSelect("", false);
+          onSelect("", false, false);
         }
       }}
       onContextMenu={(e) => {
