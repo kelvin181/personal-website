@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface MenuItemDef {
   label: string;
@@ -64,7 +65,7 @@ export default function FileManagerContextMenu({
     onClose();
   }
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       className="fixed z-[9999] min-w-48 rounded border border-terminal-dim/30 bg-window-bg py-1 font-mono text-sm text-terminal-text shadow-lg"
@@ -86,6 +87,7 @@ export default function FileManagerContextMenu({
           </button>
         )
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
