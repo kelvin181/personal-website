@@ -17,7 +17,7 @@ export default function TextViewer({ fileId }: TextViewerProps) {
   const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
   const [prevFileId, setPrevFileId] = useState(fileId);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const pendingCursorRef = useRef<string | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const node = fileId ? fs.nodes[fileId] : undefined;
   const validNode = node && isFile(node) ? node : undefined;
@@ -49,25 +49,42 @@ export default function TextViewer({ fileId }: TextViewerProps) {
     return () => clearTimeout(timer);
   }, [draft, fileId, dispatch, validNode]);
 
-  // Focus textarea and position cursor when switching to raw mode
+  // Manual double-click detection via mousedown — more reliable than dblclick,
+  // which can be silently swallowed by inline elements or the React runtime.
+  useEffect(() => {
+    if (mdMode !== "preview") return;
+
+    let lastTime = 0;
+    let lastX = 0;
+    let lastY = 0;
+
+    function handleMouseDown(e: MouseEvent) {
+      if (!previewRef.current?.contains(e.target as Node)) return;
+
+      const now = Date.now();
+      const dx = Math.abs(e.clientX - lastX);
+      const dy = Math.abs(e.clientY - lastY);
+      const isDoubleClick = now - lastTime < 400 && dx < 5 && dy < 5;
+
+      if (isDoubleClick) {
+        lastTime = 0;
+        setMdMode("raw");
+      } else {
+        lastTime = now;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown, true);
+    return () => document.removeEventListener("mousedown", handleMouseDown, true);
+  }, [mdMode]);
+
+  // Focus textarea when switching to raw mode.
   useEffect(() => {
     if (mdMode !== "raw") return;
-    const search = pendingCursorRef.current;
-    pendingCursorRef.current = null;
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    textarea.focus();
-    if (search) {
-      const idx = draft.indexOf(search);
-      if (idx !== -1) textarea.setSelectionRange(idx, idx);
-    }
-  }, [mdMode, draft]);
-
-  function handlePreviewDoubleClick() {
-    const selected = window.getSelection()?.toString().trim() ?? "";
-    pendingCursorRef.current = selected || null;
-    setMdMode("raw");
-  }
+    textareaRef.current?.focus();
+  }, [mdMode]);
 
   if (!fileId) {
     return (
@@ -117,7 +134,7 @@ export default function TextViewer({ fileId }: TextViewerProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {mdMode === "preview" ? (
-            <div className="p-4 cursor-text" onDoubleClick={handlePreviewDoubleClick}>
+            <div ref={previewRef} className="p-4 cursor-text min-h-full">
               <MarkdownRenderer content={validNode.content} />
             </div>
           ) : (
