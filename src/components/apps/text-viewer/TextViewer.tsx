@@ -13,29 +13,14 @@ interface TextViewerProps {
 export default function TextViewer({ fileId }: TextViewerProps) {
   const fs = useAppSelector((s) => s.filesystem);
   const dispatch = useAppDispatch();
-  const [draft, setDraft] = useState("");
-  const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
-  const [prevFileId, setPrevFileId] = useState(fileId);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
 
   const node = fileId ? fs.nodes[fileId] : undefined;
   const validNode = node && isFile(node) ? node : undefined;
 
-  // Reset state when switching files
-  if (prevFileId !== fileId) {
-    setPrevFileId(fileId);
-    setDraft(validNode?.content ?? "");
-    setMdMode("preview");
-  }
-
-  // Initialise draft when first loading a file
-  useEffect(() => {
-    if (validNode && draft === "" && validNode.content !== "") {
-      setDraft(validNode.content);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileId]);
+  const [draft, setDraft] = useState(validNode?.content ?? "");
+  const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Auto-save: debounce 500 ms after last keystroke
   useEffect(() => {

@@ -25,7 +25,12 @@ function AppContent({
     case "file-manager":
       return <FileManager initialPath={appProps?.initialPath as string | undefined} />;
     case "text-viewer":
-      return <TextViewer fileId={appProps?.fileId as string | undefined} />;
+      return (
+        <TextViewer
+          key={appProps?.fileId as string | undefined}
+          fileId={appProps?.fileId as string | undefined}
+        />
+      );
     default:
       return <div className="p-4 text-terminal-error">Unknown app: {appType}</div>;
   }
