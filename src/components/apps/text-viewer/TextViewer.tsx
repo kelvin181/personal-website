@@ -1,9 +1,10 @@
 "use client";
 
-import { useAppSelector } from "@/store/hooks";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { isFile } from "@/lib/filesystem/types";
+import { updateFileContent } from "@/store/filesystemSlice";
 import MarkdownRenderer from "./MarkdownRenderer";
-import PlainTextView from "./PlainTextView";
 
 interface TextViewerProps {
   fileId?: string;
@@ -11,6 +12,86 @@ interface TextViewerProps {
 
 export default function TextViewer({ fileId }: TextViewerProps) {
   const fs = useAppSelector((s) => s.filesystem);
+  const dispatch = useAppDispatch();
+
+  const validNode = useMemo(() => {
+    const node = fileId ? fs.nodes[fileId] : undefined;
+    return node && isFile(node) ? node : undefined;
+  }, [fs.nodes, fileId]);
+
+  const [draft, setDraft] = useState(validNode?.content ?? "");
+  const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const savedContent = validNode?.content;
+
+  // Resync draft if the file content is changed externally (e.g. from terminal).
+  useEffect(() => {
+    if (savedContent !== undefined && savedContent !== draft) {
+      setDraft(savedContent);
+    }
+    // Intentionally omitting `draft` — we only want to sync when Redux content changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedContent]);
+
+  // Auto-save: debounce 500 ms after last keystroke
+  useEffect(() => {
+    if (!fileId || savedContent === undefined) return;
+    if (draft === savedContent) return;
+
+    const timer = setTimeout(() => {
+      dispatch(updateFileContent({ nodeId: fileId, content: draft }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [draft, fileId, dispatch, savedContent]);
+
+  // Manual double-click detection via mousedown — more reliable than dblclick,
+  // which can be silently swallowed by inline elements or the React runtime.
+  useEffect(() => {
+    if (mdMode !== "preview") return;
+
+    let lastTime = 0;
+    let lastX = 0;
+    let lastY = 0;
+
+    function handleMouseDown(e: MouseEvent) {
+      if (!previewRef.current?.contains(e.target as Node)) return;
+
+      const node = e.target as Node;
+      const el =
+        node.nodeType === Node.ELEMENT_NODE ? (node as Element) : (node as ChildNode).parentElement;
+      const linkEl = el?.closest("a") as HTMLAnchorElement | null;
+
+      const now = Date.now();
+      const dx = Math.abs(e.clientX - lastX);
+      const dy = Math.abs(e.clientY - lastY);
+      const isDoubleClick = now - lastTime < 400 && dx < 5 && dy < 5;
+
+      if (linkEl?.href) {
+        if (!isDoubleClick) window.open(linkEl.href, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      if (isDoubleClick) {
+        lastTime = 0;
+        setMdMode("raw");
+      } else {
+        lastTime = now;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown, true);
+    return () => document.removeEventListener("mousedown", handleMouseDown, true);
+  }, [mdMode]);
+
+  // Focus textarea when switching to raw mode.
+  useEffect(() => {
+    if (mdMode !== "raw") return;
+    textareaRef.current?.focus();
+  }, [mdMode]);
 
   if (!fileId) {
     return (
@@ -20,8 +101,7 @@ export default function TextViewer({ fileId }: TextViewerProps) {
     );
   }
 
-  const node = fs.nodes[fileId];
-  if (!node || !isFile(node)) {
+  if (!validNode) {
     return (
       <div className="flex items-center justify-center h-full text-terminal-error text-sm">
         File not found
@@ -29,15 +109,64 @@ export default function TextViewer({ fileId }: TextViewerProps) {
     );
   }
 
-  const isMarkdown = node.extension === "md";
+  const isMarkdown = validNode.extension === "md";
 
+  if (isMarkdown) {
+    return (
+      <div className="flex flex-col h-full bg-terminal-bg font-mono">
+        {/* Toolbar: Preview / Raw toggle */}
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-terminal-border shrink-0">
+          <button
+            onClick={() => setMdMode("preview")}
+            className={`px-2.5 py-0.5 text-xs rounded transition-all cursor-pointer ${
+              mdMode === "preview"
+                ? "bg-terminal-dim/20 text-terminal-text"
+                : "text-terminal-dim hover:text-terminal-text"
+            }`}
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => setMdMode("raw")}
+            className={`px-2.5 py-0.5 text-xs rounded transition-all cursor-pointer ${
+              mdMode === "raw"
+                ? "bg-terminal-dim/20 text-terminal-text"
+                : "text-terminal-dim hover:text-terminal-text"
+            }`}
+          >
+            Raw
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {mdMode === "preview" ? (
+            <div ref={previewRef} className="p-4 cursor-text min-h-full">
+              <MarkdownRenderer content={validNode.content} />
+            </div>
+          ) : (
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="w-full h-full p-4 bg-transparent text-terminal-text text-sm resize-none outline-none"
+              spellCheck={false}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Plain text: always editable, no toolbar
   return (
-    <div className="h-full overflow-y-auto bg-terminal-bg p-4 font-mono">
-      {isMarkdown ? (
-        <MarkdownRenderer content={node.content} />
-      ) : (
-        <PlainTextView content={node.content} />
-      )}
+    <div className="h-full bg-terminal-bg font-mono">
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        className="w-full h-full p-4 bg-transparent text-terminal-text text-sm resize-none outline-none"
+        spellCheck={false}
+      />
     </div>
   );
 }
