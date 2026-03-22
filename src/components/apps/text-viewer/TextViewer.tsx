@@ -23,27 +23,28 @@ export default function TextViewer({ fileId }: TextViewerProps) {
   const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const savedContent = validNode?.content;
 
   // Resync draft if the file content is changed externally (e.g. from terminal).
   useEffect(() => {
-    if (validNode && validNode.content !== draft) {
-      setDraft(validNode.content);
+    if (savedContent !== undefined && savedContent !== draft) {
+      setDraft(savedContent);
     }
     // Intentionally omitting `draft` — we only want to sync when Redux content changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validNode?.content]);
+  }, [savedContent]);
 
   // Auto-save: debounce 500 ms after last keystroke
   useEffect(() => {
-    if (!fileId || !validNode) return;
-    if (draft === validNode.content) return;
+    if (!fileId || savedContent === undefined) return;
+    if (draft === savedContent) return;
 
     const timer = setTimeout(() => {
       dispatch(updateFileContent({ nodeId: fileId, content: draft }));
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [draft, fileId, dispatch, validNode]);
+  }, [draft, fileId, dispatch, savedContent]);
 
   // Manual double-click detection via mousedown — more reliable than dblclick,
   // which can be silently swallowed by inline elements or the React runtime.
@@ -57,10 +58,20 @@ export default function TextViewer({ fileId }: TextViewerProps) {
     function handleMouseDown(e: MouseEvent) {
       if (!previewRef.current?.contains(e.target as Node)) return;
 
+      const node = e.target as Node;
+      const el =
+        node.nodeType === Node.ELEMENT_NODE ? (node as Element) : (node as ChildNode).parentElement;
+      const linkEl = el?.closest("a") as HTMLAnchorElement | null;
+
       const now = Date.now();
       const dx = Math.abs(e.clientX - lastX);
       const dy = Math.abs(e.clientY - lastY);
       const isDoubleClick = now - lastTime < 400 && dx < 5 && dy < 5;
+
+      if (linkEl?.href) {
+        if (!isDoubleClick) window.open(linkEl.href, "_blank", "noopener,noreferrer");
+        return;
+      }
 
       if (isDoubleClick) {
         lastTime = 0;
