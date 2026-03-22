@@ -16,6 +16,14 @@ import { FSNode, NodeId, isDirectory, isFile } from "@/lib/filesystem/types";
 import { getNodeByPath } from "@/lib/filesystem/utils";
 import { getChildren } from "@/lib/filesystem/operations";
 import { computeNextSelection } from "./selectionUtils";
+import {
+  navigateTo,
+  navGoBack,
+  navGoForward,
+  navCanGoBack,
+  navCanGoForward,
+  navCurrentPath,
+} from "./navigationHistory";
 import Breadcrumb from "./Breadcrumb";
 import FileList from "./FileList";
 import FileManagerContextMenu from "./FileManagerContextMenu";
@@ -83,6 +91,10 @@ interface FileManagerProps {
 
 export default function FileManager({ initialPath }: FileManagerProps) {
   const [currentPath, setCurrentPath] = useState(initialPath || "/home/user");
+  const [history, setHistory] = useState<string[]>([initialPath || "/home/user"]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const canGoBack = navCanGoBack({ history, historyIndex });
+  const canGoForward = navCanGoForward({ history, historyIndex });
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -112,12 +124,38 @@ export default function FileManager({ initialPath }: FileManagerProps) {
   }, [children]);
 
   // Clear selection when navigating — use the setter callback form
-  const setCurrentPathAndClearSelection = useCallback((path: string) => {
-    setCurrentPath(path);
+  const setCurrentPathAndClearSelection = useCallback(
+    (path: string) => {
+      const next = navigateTo({ history, historyIndex }, path);
+      setHistory(next.history);
+      setHistoryIndex(next.historyIndex);
+      setCurrentPath(path);
+      setSelectedNodeIds(new Set());
+      setRenamingNodeId(null);
+      lastClickedId.current = null;
+    },
+    [history, historyIndex]
+  );
+
+  const goBack = useCallback(() => {
+    if (!canGoBack) return;
+    const next = navGoBack({ history, historyIndex });
+    setHistoryIndex(next.historyIndex);
+    setCurrentPath(navCurrentPath(next));
     setSelectedNodeIds(new Set());
     setRenamingNodeId(null);
     lastClickedId.current = null;
-  }, []);
+  }, [canGoBack, history, historyIndex]);
+
+  const goForward = useCallback(() => {
+    if (!canGoForward) return;
+    const next = navGoForward({ history, historyIndex });
+    setHistoryIndex(next.historyIndex);
+    setCurrentPath(navCurrentPath(next));
+    setSelectedNodeIds(new Set());
+    setRenamingNodeId(null);
+    lastClickedId.current = null;
+  }, [canGoForward, history, historyIndex]);
 
   const handleDoubleClick = useCallback(
     (node: FSNode) => {
@@ -327,6 +365,17 @@ export default function FileManager({ initialPath }: FileManagerProps) {
 
       const isMod = e.metaKey || e.ctrlKey;
 
+      if (isMod && e.key === "ArrowLeft") {
+        e.preventDefault();
+        goBack();
+        return;
+      }
+      if (isMod && e.key === "ArrowRight") {
+        e.preventDefault();
+        goForward();
+        return;
+      }
+
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedNodeIds.size > 0) {
           e.preventDefault();
@@ -365,6 +414,8 @@ export default function FileManager({ initialPath }: FileManagerProps) {
     handleCopy,
     handleCut,
     handlePaste,
+    goBack,
+    goForward,
   ]);
 
   // --- Context menu items ---
@@ -422,7 +473,14 @@ export default function FileManager({ initialPath }: FileManagerProps) {
       tabIndex={0}
       style={{ outline: "none" }}
     >
-      <Breadcrumb path={currentPath} onNavigate={handleNavigate} />
+      <Breadcrumb
+        path={currentPath}
+        onNavigate={handleNavigate}
+        onBack={goBack}
+        onForward={goForward}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
+      />
       {currentPath !== "/" && (
         <ParentDirEntry
           currentPath={currentPath}
