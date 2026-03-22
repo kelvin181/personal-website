@@ -91,6 +91,8 @@ export default function FileManager({ initialPath }: FileManagerProps) {
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastClickedId = useRef<string | null>(null);
+  const displayedNodesRef = useRef<FSNode[]>([]);
 
   const fs = useAppSelector((s) => s.filesystem);
   const clipboard = useAppSelector((s) => s.clipboard);
@@ -104,11 +106,16 @@ export default function FileManager({ initialPath }: FileManagerProps) {
 
   const cutNodeIds = new Set(clipboard.operation === "cut" ? clipboard.nodeIds : []);
 
+  useEffect(() => {
+    displayedNodesRef.current = children;
+  }, [children]);
+
   // Clear selection when navigating — use the setter callback form
   const setCurrentPathAndClearSelection = useCallback((path: string) => {
     setCurrentPath(path);
     setSelectedNodeIds(new Set());
     setRenamingNodeId(null);
+    lastClickedId.current = null;
   }, []);
 
   const handleDoubleClick = useCallback(
@@ -137,12 +144,28 @@ export default function FileManager({ initialPath }: FileManagerProps) {
     [setCurrentPathAndClearSelection]
   );
 
-  const handleSelect = useCallback((nodeId: string, multi: boolean) => {
+  const handleSelect = useCallback((nodeId: string, multi: boolean, shift: boolean) => {
     if (!nodeId) {
       // Clicked empty space — clear selection
       setSelectedNodeIds(new Set());
       return;
     }
+
+    if (shift && lastClickedId.current) {
+      const nodes = displayedNodesRef.current;
+      const anchorIdx = nodes.findIndex((n) => n.id === lastClickedId.current);
+      const targetIdx = nodes.findIndex((n) => n.id === nodeId);
+      if (anchorIdx !== -1 && targetIdx !== -1) {
+        const [from, to] = anchorIdx < targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+        const rangeIds = new Set(nodes.slice(from, to + 1).map((n) => n.id));
+        setSelectedNodeIds(multi ? (prev) => new Set([...prev, ...rangeIds]) : rangeIds);
+        return; // anchor stays fixed on shift-click
+      }
+    }
+
+    // Non-shift path — update anchor
+    lastClickedId.current = nodeId;
+
     if (multi) {
       setSelectedNodeIds((prev) => {
         const next = new Set(prev);
@@ -347,6 +370,7 @@ export default function FileManager({ initialPath }: FileManagerProps) {
       } else if (e.key === "Escape") {
         setSelectedNodeIds(new Set());
         setContextMenu(null);
+        lastClickedId.current = null;
       }
     }
 
