@@ -15,6 +15,7 @@ import { clipboardCopy, clipboardCut, clipboardClear } from "@/store/clipboardSl
 import { FSNode, NodeId, isDirectory, isFile } from "@/lib/filesystem/types";
 import { getNodeByPath } from "@/lib/filesystem/utils";
 import { getChildren } from "@/lib/filesystem/operations";
+import { computeNextSelection } from "./selectionUtils";
 import Breadcrumb from "./Breadcrumb";
 import FileList from "./FileList";
 import FileManagerContextMenu from "./FileManagerContextMenu";
@@ -145,40 +146,20 @@ export default function FileManager({ initialPath }: FileManagerProps) {
   );
 
   const handleSelect = useCallback((nodeId: string, multi: boolean, shift: boolean) => {
-    if (!nodeId) {
-      // Clicked empty space — clear selection
-      setSelectedNodeIds(new Set());
-      return;
-    }
-
-    if (shift && lastClickedId.current) {
-      const nodes = displayedNodesRef.current;
-      const anchorIdx = nodes.findIndex((n) => n.id === lastClickedId.current);
-      const targetIdx = nodes.findIndex((n) => n.id === nodeId);
-      if (anchorIdx !== -1 && targetIdx !== -1) {
-        const [from, to] = anchorIdx < targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
-        const rangeIds = new Set(nodes.slice(from, to + 1).map((n) => n.id));
-        setSelectedNodeIds(multi ? (prev) => new Set([...prev, ...rangeIds]) : rangeIds);
-        return; // anchor stays fixed on shift-click
+    setSelectedNodeIds((prev) => {
+      const { nextSelection, nextAnchor } = computeNextSelection(
+        nodeId,
+        multi,
+        shift,
+        lastClickedId.current,
+        displayedNodesRef.current,
+        prev
+      );
+      if (nextAnchor !== undefined) {
+        lastClickedId.current = nextAnchor;
       }
-    }
-
-    // Non-shift path — update anchor
-    lastClickedId.current = nodeId;
-
-    if (multi) {
-      setSelectedNodeIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(nodeId)) {
-          next.delete(nodeId);
-        } else {
-          next.add(nodeId);
-        }
-        return next;
-      });
-    } else {
-      setSelectedNodeIds(new Set([nodeId]));
-    }
+      return nextSelection;
+    });
   }, []);
 
   const handleContextMenu = useCallback(
