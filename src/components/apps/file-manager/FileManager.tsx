@@ -16,6 +16,14 @@ import { FSNode, NodeId, isDirectory, isFile } from "@/lib/filesystem/types";
 import { getNodeByPath } from "@/lib/filesystem/utils";
 import { getChildren } from "@/lib/filesystem/operations";
 import { computeNextSelection } from "./selectionUtils";
+import {
+  navigateTo,
+  navGoBack,
+  navGoForward,
+  navCanGoBack,
+  navCanGoForward,
+  navCurrentPath,
+} from "./navigationHistory";
 import Breadcrumb from "./Breadcrumb";
 import FileList from "./FileList";
 import FileManagerContextMenu from "./FileManagerContextMenu";
@@ -85,6 +93,8 @@ export default function FileManager({ initialPath }: FileManagerProps) {
   const [currentPath, setCurrentPath] = useState(initialPath || "/home/user");
   const [history, setHistory] = useState<string[]>([initialPath || "/home/user"]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const canGoBack = navCanGoBack({ history, historyIndex });
+  const canGoForward = navCanGoForward({ history, historyIndex });
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -107,9 +117,6 @@ export default function FileManager({ initialPath }: FileManagerProps) {
     [fs, currentNode]
   );
 
-  const canGoBack = historyIndex > 0;
-  const canGoForward = historyIndex < history.length - 1;
-
   const cutNodeIds = new Set(clipboard.operation === "cut" ? clipboard.nodeIds : []);
 
   useEffect(() => {
@@ -119,35 +126,36 @@ export default function FileManager({ initialPath }: FileManagerProps) {
   // Clear selection when navigating — use the setter callback form
   const setCurrentPathAndClearSelection = useCallback(
     (path: string) => {
-      setHistory((prev) => [...prev.slice(0, historyIndex + 1), path]);
-      setHistoryIndex((prev) => prev + 1);
+      const next = navigateTo({ history, historyIndex }, path);
+      setHistory(next.history);
+      setHistoryIndex(next.historyIndex);
       setCurrentPath(path);
       setSelectedNodeIds(new Set());
       setRenamingNodeId(null);
       lastClickedId.current = null;
     },
-    [historyIndex]
+    [history, historyIndex]
   );
 
   const goBack = useCallback(() => {
     if (!canGoBack) return;
-    const newIndex = historyIndex - 1;
-    setHistoryIndex(newIndex);
-    setCurrentPath(history[newIndex]);
+    const next = navGoBack({ history, historyIndex });
+    setHistoryIndex(next.historyIndex);
+    setCurrentPath(navCurrentPath(next));
     setSelectedNodeIds(new Set());
     setRenamingNodeId(null);
     lastClickedId.current = null;
-  }, [canGoBack, historyIndex, history]);
+  }, [canGoBack, history, historyIndex]);
 
   const goForward = useCallback(() => {
     if (!canGoForward) return;
-    const newIndex = historyIndex + 1;
-    setHistoryIndex(newIndex);
-    setCurrentPath(history[newIndex]);
+    const next = navGoForward({ history, historyIndex });
+    setHistoryIndex(next.historyIndex);
+    setCurrentPath(navCurrentPath(next));
     setSelectedNodeIds(new Set());
     setRenamingNodeId(null);
     lastClickedId.current = null;
-  }, [canGoForward, historyIndex, history]);
+  }, [canGoForward, history, historyIndex]);
 
   const handleDoubleClick = useCallback(
     (node: FSNode) => {
