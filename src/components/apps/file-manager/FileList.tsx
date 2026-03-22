@@ -10,7 +10,7 @@ interface FileListProps {
   renamingNodeId: string | null;
   nodes: Record<string, FSNode>;
   onDoubleClick: (node: FSNode) => void;
-  onSelect: (nodeId: string, multi: boolean) => void;
+  onSelect: (nodeId: string, multi: boolean, shift: boolean) => void;
   onContextMenu: (e: React.MouseEvent, nodeId: string | null) => void;
   onRenameSubmit: (nodeId: string, newName: string) => void;
   onRenameCancel: () => void;
@@ -50,7 +50,7 @@ export default function FileList({
       onClick={(e) => {
         // Clear selection when clicking empty space
         if (e.target === e.currentTarget) {
-          onSelect("", false);
+          onSelect("", false, false);
         }
       }}
       onContextMenu={(e) => {

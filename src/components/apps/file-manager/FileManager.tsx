@@ -15,6 +15,7 @@ import { clipboardCopy, clipboardCut, clipboardClear } from "@/store/clipboardSl
 import { FSNode, NodeId, isDirectory, isFile } from "@/lib/filesystem/types";
 import { getNodeByPath } from "@/lib/filesystem/utils";
 import { getChildren } from "@/lib/filesystem/operations";
+import { computeNextSelection } from "./selectionUtils";
 import Breadcrumb from "./Breadcrumb";
 import FileList from "./FileList";
 import FileManagerContextMenu from "./FileManagerContextMenu";
@@ -91,6 +92,8 @@ export default function FileManager({ initialPath }: FileManagerProps) {
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastClickedId = useRef<string | null>(null);
+  const displayedNodesRef = useRef<FSNode[]>([]);
 
   const fs = useAppSelector((s) => s.filesystem);
   const clipboard = useAppSelector((s) => s.clipboard);
@@ -104,11 +107,16 @@ export default function FileManager({ initialPath }: FileManagerProps) {
 
   const cutNodeIds = new Set(clipboard.operation === "cut" ? clipboard.nodeIds : []);
 
+  useEffect(() => {
+    displayedNodesRef.current = children;
+  }, [children]);
+
   // Clear selection when navigating — use the setter callback form
   const setCurrentPathAndClearSelection = useCallback((path: string) => {
     setCurrentPath(path);
     setSelectedNodeIds(new Set());
     setRenamingNodeId(null);
+    lastClickedId.current = null;
   }, []);
 
   const handleDoubleClick = useCallback(
@@ -137,25 +145,21 @@ export default function FileManager({ initialPath }: FileManagerProps) {
     [setCurrentPathAndClearSelection]
   );
 
-  const handleSelect = useCallback((nodeId: string, multi: boolean) => {
-    if (!nodeId) {
-      // Clicked empty space — clear selection
-      setSelectedNodeIds(new Set());
-      return;
-    }
-    if (multi) {
-      setSelectedNodeIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(nodeId)) {
-          next.delete(nodeId);
-        } else {
-          next.add(nodeId);
-        }
-        return next;
-      });
-    } else {
-      setSelectedNodeIds(new Set([nodeId]));
-    }
+  const handleSelect = useCallback((nodeId: string, multi: boolean, shift: boolean) => {
+    setSelectedNodeIds((prev) => {
+      const { nextSelection, nextAnchor } = computeNextSelection(
+        nodeId,
+        multi,
+        shift,
+        lastClickedId.current,
+        displayedNodesRef.current,
+        prev
+      );
+      if (nextAnchor !== undefined) {
+        lastClickedId.current = nextAnchor;
+      }
+      return nextSelection;
+    });
   }, []);
 
   const handleContextMenu = useCallback(
@@ -347,6 +351,7 @@ export default function FileManager({ initialPath }: FileManagerProps) {
       } else if (e.key === "Escape") {
         setSelectedNodeIds(new Set());
         setContextMenu(null);
+        lastClickedId.current = null;
       }
     }
 

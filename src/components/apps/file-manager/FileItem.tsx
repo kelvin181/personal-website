@@ -11,7 +11,7 @@ interface FileItemProps {
   selectedNodeIds: Set<string>;
   nodes: Record<string, FSNode>;
   onDoubleClick: (node: FSNode) => void;
-  onSelect: (nodeId: string, multi: boolean) => void;
+  onSelect: (nodeId: string, multi: boolean, shift: boolean) => void;
   onContextMenu: (e: React.MouseEvent, nodeId: string) => void;
   onRenameSubmit: (nodeId: string, newName: string) => void;
   onRenameCancel: () => void;
@@ -111,7 +111,7 @@ export default function FileItem({
             : "border border-transparent hover:bg-white/5"
       } ${isCut ? "opacity-50" : ""}`}
       draggable={!isRenaming}
-      onClick={(e) => onSelect(node.id, e.metaKey || e.ctrlKey)}
+      onClick={(e) => onSelect(node.id, e.metaKey || e.ctrlKey, e.shiftKey)}
       onDoubleClick={() => onDoubleClick(node)}
       onContextMenu={(e) => onContextMenu(e, node.id)}
       onDragStart={(e) => {
