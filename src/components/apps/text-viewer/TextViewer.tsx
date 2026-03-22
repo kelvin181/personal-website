@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { isFile } from "@/lib/filesystem/types";
 import { updateFileContent } from "@/store/filesystemSlice";
@@ -14,13 +14,24 @@ export default function TextViewer({ fileId }: TextViewerProps) {
   const fs = useAppSelector((s) => s.filesystem);
   const dispatch = useAppDispatch();
 
-  const node = fileId ? fs.nodes[fileId] : undefined;
-  const validNode = node && isFile(node) ? node : undefined;
+  const validNode = useMemo(() => {
+    const node = fileId ? fs.nodes[fileId] : undefined;
+    return node && isFile(node) ? node : undefined;
+  }, [fs.nodes, fileId]);
 
   const [draft, setDraft] = useState(validNode?.content ?? "");
   const [mdMode, setMdMode] = useState<"preview" | "raw">("preview");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  // Resync draft if the file content is changed externally (e.g. from terminal).
+  useEffect(() => {
+    if (validNode && validNode.content !== draft) {
+      setDraft(validNode.content);
+    }
+    // Intentionally omitting `draft` — we only want to sync when Redux content changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validNode?.content]);
 
   // Auto-save: debounce 500 ms after last keystroke
   useEffect(() => {
