@@ -46,10 +46,26 @@ async function getPyodide(): Promise<PyodideInterface> {
   return loadPromise;
 }
 
-// Mirrors daedalOS stdout capture pattern:
-// redirect sys.stdout to a StringIO buffer before running user code,
-// then retrieve output with sys.stdout.getvalue()
-const captureStdout = "import sys\nimport io\nsys.stdout = io.StringIO()\n";
+// Wrap user code in a try/finally that captures stdout into a StringIO buffer,
+// restores the original stdout even if the code throws, then returns the buffer
+// contents as the last expression (Pyodide returns the last evaluated expression).
+function wrapWithStdoutCapture(code: string): string {
+  const indented = code
+    .split("\n")
+    .map((line) => "    " + line)
+    .join("\n");
+  return (
+    "import sys, io as _io\n" +
+    "_old_stdout = sys.stdout\n" +
+    "_buf = _io.StringIO()\n" +
+    "sys.stdout = _buf\n" +
+    "try:\n" +
+    indented +
+    "\nfinally:\n" +
+    "    sys.stdout = _old_stdout\n" +
+    "_buf.getvalue()"
+  );
+}
 
 export async function runPython(code: string): Promise<{ output: string; error: string | null }> {
   const py = await getPyodide();
@@ -60,8 +76,7 @@ export async function runPython(code: string): Promise<{ output: string; error: 
   }
 
   try {
-    await py.runPythonAsync(captureStdout + code);
-    const output = (await py.runPythonAsync("sys.stdout.getvalue()")) as string;
+    const output = (await py.runPythonAsync(wrapWithStdoutCapture(code))) as string;
     return { output, error: null };
   } catch (err: unknown) {
     return {
