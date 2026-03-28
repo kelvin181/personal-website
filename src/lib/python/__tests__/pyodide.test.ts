@@ -26,10 +26,7 @@ async function importRunPython() {
 describe("runPython — successful execution", () => {
   it("returns captured stdout output", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "Hello World\n";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("Hello World\n");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
@@ -41,10 +38,7 @@ describe("runPython — successful execution", () => {
 
   it("returns empty output for code that prints nothing", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
@@ -56,37 +50,37 @@ describe("runPython — successful execution", () => {
 });
 
 describe("runPython — stdout capture", () => {
-  it("prepends StringIO capture code before user code", async () => {
+  it("wraps user code with stdout capture and restore", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
     await runPython("print('test')");
 
-    const firstCall = mock.runPythonAsync.mock.calls[0][0] as string;
-    expect(firstCall).toContain("import sys");
-    expect(firstCall).toContain("import io");
-    expect(firstCall).toContain("sys.stdout = io.StringIO()");
-    expect(firstCall).toContain("print('test')");
+    expect(mock.runPythonAsync).toHaveBeenCalledTimes(1);
+    const call = mock.runPythonAsync.mock.calls[0][0] as string;
+    expect(call).toContain("import sys, io as _io");
+    expect(call).toContain("sys.stdout = _buf");
+    expect(call).toContain("sys.stdout = _old_stdout");
+    expect(call).toContain("print('test')");
+    expect(call).toContain("_buf.getvalue()");
   });
 
-  it("calls sys.stdout.getvalue() to retrieve output", async () => {
+  it("restores stdout in a finally block so it survives errors", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "captured";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
     await runPython("x = 1");
 
-    const secondCall = mock.runPythonAsync.mock.calls[1][0] as string;
-    expect(secondCall).toBe("sys.stdout.getvalue()");
+    const call = mock.runPythonAsync.mock.calls[0][0] as string;
+    // finally must appear before the restore line
+    const finallyIdx = call.indexOf("finally:");
+    const restoreIdx = call.indexOf("sys.stdout = _old_stdout");
+    expect(finallyIdx).toBeGreaterThan(-1);
+    expect(restoreIdx).toBeGreaterThan(finallyIdx);
   });
 });
 
@@ -119,10 +113,7 @@ describe("runPython — error handling", () => {
 describe("runPython — micropip auto-loading", () => {
   it("loads micropip when code contains 'import micropip'", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
@@ -133,10 +124,7 @@ describe("runPython — micropip auto-loading", () => {
 
   it("does not load micropip when code does not import it", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
@@ -149,10 +137,7 @@ describe("runPython — micropip auto-loading", () => {
 describe("getPyodide — singleton loading", () => {
   it("reuses cached instance on second call", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
@@ -164,10 +149,7 @@ describe("getPyodide — singleton loading", () => {
 
   it("passes correct options to loadPyodide", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
 
     const runPython = await importRunPython();
@@ -181,10 +163,7 @@ describe("getPyodide — singleton loading", () => {
 
   it("loads CDN script when window.loadPyodide is not available", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("");
 
     // Simulate: loadPyodide not on window initially, script load sets it
     const appendChildSpy = vi.spyOn(document.head, "appendChild").mockImplementation((el) => {
@@ -205,10 +184,7 @@ describe("getPyodide — singleton loading", () => {
 
   it("resets load promise on failure so next call retries", async () => {
     const mock = makeMockPyodide();
-    mock.runPythonAsync.mockImplementation(async (code: string) => {
-      if (code.includes("sys.stdout.getvalue()")) return "ok";
-      return undefined;
-    });
+    mock.runPythonAsync.mockResolvedValue("ok");
 
     // First call: loadPyodide rejects
     window.loadPyodide = vi.fn().mockRejectedValue(new Error("network error"));
