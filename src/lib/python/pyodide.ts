@@ -70,8 +70,9 @@ function wrapWithStdoutCapture(code: string): string {
 export async function runPython(code: string): Promise<{ output: string; error: string | null }> {
   const py = await getPyodide();
 
-  // Auto-load micropip if code uses it (same as daedalOS)
-  if (code.includes("import micropip")) {
+  // Auto-load micropip if code uses it — regex matches real import statements only,
+  // ignoring occurrences inside comments or string literals.
+  if (/^\s*import\s+micropip\b/m.test(code)) {
     await py.loadPackage("micropip", { checkIntegrity: false });
   }
 
