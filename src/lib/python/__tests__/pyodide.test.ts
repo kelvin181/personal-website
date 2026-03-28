@@ -132,6 +132,17 @@ describe("runPython — micropip auto-loading", () => {
 
     expect(mock.loadPackage).not.toHaveBeenCalled();
   });
+
+  it("does not load micropip when 'import micropip' appears only in a comment", async () => {
+    const mock = makeMockPyodide();
+    mock.runPythonAsync.mockResolvedValue("");
+    window.loadPyodide = vi.fn().mockResolvedValue(mock);
+
+    const runPython = await importRunPython();
+    await runPython("# import micropip\nprint('hello')");
+
+    expect(mock.loadPackage).not.toHaveBeenCalled();
+  });
 });
 
 describe("getPyodide — singleton loading", () => {
