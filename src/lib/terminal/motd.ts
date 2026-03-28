@@ -23,5 +23,9 @@ export const MOTD: OutputLine[] = [
     text: '  Type "whoami" to learn about me',
     type: "dim",
   },
+  {
+    text: "  Try: python scripts/hello.py",
+    type: "dim",
+  },
   { text: "", type: "output" },
 ];

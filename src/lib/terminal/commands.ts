@@ -9,6 +9,7 @@ import { education } from "@/content/data/education";
 import { skills } from "@/content/data/skills";
 import { interests } from "@/content/data/interests";
 import { parseCommand } from "./parser";
+import { runPython } from "@/lib/python/pyodide";
 
 export interface OutputLine {
   text: string;
@@ -29,7 +30,7 @@ interface CommandContext {
   dispatch: unknown;
 }
 
-type CommandHandler = (args: string[], ctx: CommandContext) => OutputLine[];
+type CommandHandler = (args: string[], ctx: CommandContext) => OutputLine[] | Promise<OutputLine[]>;
 
 function resolvePath(cwd: string, target: string): string {
   if (target.startsWith("/")) return normalizePath(target);
@@ -407,6 +408,40 @@ const cmdSocial: CommandHandler = () => {
   return cmdContact([], {} as CommandContext);
 };
 
+// --- Python ---
+
+const cmdPython: CommandHandler = async (args, ctx) => {
+  if (!args[0]) {
+    return [{ text: "usage: python <file.py>", type: "error" }];
+  }
+
+  const path = resolvePath(ctx.cwd, args[0]);
+  const node = getNodeByPath(ctx.fs, path);
+
+  if (!node)
+    return [
+      {
+        text: `python: can't open file '${args[0]}': [Errno 2] No such file or directory`,
+        type: "error",
+      },
+    ];
+  if (isDirectory(node)) return [{ text: `python: '${args[0]}': Is a directory`, type: "error" }];
+
+  const { output, error } = await runPython(node.content);
+
+  if (error) {
+    return error
+      .split("\n")
+      .filter(Boolean)
+      .map((text) => ({ text, type: "error" as const }));
+  }
+
+  return output
+    .split("\n")
+    .filter(Boolean)
+    .map((text) => ({ text, type: "output" as const }));
+};
+
 // --- Help ---
 
 const HELP_TEXT: Record<string, string> = {
@@ -432,6 +467,7 @@ const HELP_TEXT: Record<string, string> = {
   contact: "contact  —  Show contact information",
   resume: "resume  —  Display resume summary",
   social: "social  —  Show social media links",
+  python: "python <file.py>  —  Run a Python script",
 };
 
 const cmdHelp: CommandHandler = (args) => {
@@ -468,6 +504,7 @@ const cmdHelp: CommandHandler = (args) => {
     "echo",
     "open",
     "clear",
+    "python",
   ];
   for (const cmd of linuxCmds) {
     lines.push({ text: `    ${HELP_TEXT[cmd]}`, type: "output" });
@@ -513,6 +550,7 @@ const COMMANDS: Record<string, CommandHandler> = {
   echo: cmdEcho,
   open: cmdOpen,
   help: cmdHelp,
+  python: cmdPython,
   whoami: cmdWhoami,
   projects: cmdProjects,
   experience: cmdExperience,
@@ -524,7 +562,7 @@ const COMMANDS: Record<string, CommandHandler> = {
   social: cmdSocial,
 };
 
-export function executeCommand(input: string, ctx: CommandContext): OutputLine[] {
+export async function executeCommand(input: string, ctx: CommandContext): Promise<OutputLine[]> {
   const { command, args } = parseCommand(input);
 
   if (!command) return [];
