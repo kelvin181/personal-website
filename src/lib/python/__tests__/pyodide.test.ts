@@ -13,7 +13,7 @@ beforeEach(() => {
   // Clean up any script tags added by loadScript
   document.querySelectorAll('script[src*="pyodide"]').forEach((el) => el.remove());
   // Reset window.loadPyodide
-  delete window.loadPyodide;
+  window.loadPyodide = undefined;
   // Reset module cache so singleton state is fresh
   vi.resetModules();
 });
