@@ -6,15 +6,21 @@ interface TerminalInputProps {
   prompt: string;
   onSubmit: (command: string) => void;
   onNavigateHistory: (direction: "up" | "down") => string;
+  disabled?: boolean;
 }
 
-export default function TerminalInput({ prompt, onSubmit, onNavigateHistory }: TerminalInputProps) {
+export default function TerminalInput({
+  prompt,
+  onSubmit,
+  onNavigateHistory,
+  disabled = false,
+}: TerminalInputProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!disabled) inputRef.current?.focus();
+  }, [disabled]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -32,19 +38,26 @@ export default function TerminalInput({ prompt, onSubmit, onNavigateHistory }: T
   };
 
   const handleContainerClick = () => {
-    inputRef.current?.focus();
+    if (!disabled) inputRef.current?.focus();
   };
 
   return (
     <div className="flex items-center gap-2 cursor-text" onClick={handleContainerClick}>
-      <span className="text-terminal-fg whitespace-nowrap shrink-0">{prompt}</span>
+      <span
+        className={`whitespace-nowrap shrink-0 ${disabled ? "text-terminal-dim" : "text-terminal-fg"}`}
+      >
+        {disabled ? `${prompt} ...` : prompt}
+      </span>
       <input
         ref={inputRef}
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="flex-1 bg-transparent text-terminal-fg outline-none border-none font-mono text-sm caret-terminal-fg"
+        disabled={disabled}
+        className={`flex-1 bg-transparent outline-none border-none font-mono text-sm caret-terminal-fg ${
+          disabled ? "text-terminal-dim opacity-50 cursor-not-allowed" : "text-terminal-fg"
+        }`}
         spellCheck={false}
         autoComplete="off"
         autoCapitalize="off"

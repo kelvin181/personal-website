@@ -201,6 +201,63 @@ ${profile.socials.linkedin ? `- LinkedIn: ${profile.socials.linkedin}` : ""}
 `;
   addChild(nodes, resumeDir.id, makeFile("resume.md", resumeDir.id, resumeContent));
 
+  // --- /home/user/scripts ---
+  const scriptsDir = makeDir("scripts", user.id);
+  addChild(nodes, user.id, scriptsDir);
+
+  const scriptsReadme = `# Scripts
+
+Demo Python scripts powered by Pyodide (CPython 3.11 via WebAssembly).
+
+Run them with:
+  python scripts/hello.py
+  python scripts/fibonacci.py
+  python scripts/skills_summary.py
+
+The first run loads the Python runtime (~10 MB). Subsequent runs are instant.
+`;
+  addChild(nodes, scriptsDir.id, makeFile("README.md", scriptsDir.id, scriptsReadme));
+
+  const helloScript = `# hello.py
+print("Hello from Python 3.11!")
+print("Running inside your browser via Pyodide + WebAssembly.")
+print()
+print("Try editing files and running your own scripts!")
+`;
+  addChild(nodes, scriptsDir.id, makeFile("hello.py", scriptsDir.id, helloScript));
+
+  const fibScript = `# fibonacci.py
+def fibonacci(n):
+    a, b = 0, 1
+    sequence = []
+    for _ in range(n):
+        sequence.append(a)
+        a, b = b, a + b
+    return sequence
+
+n = 15
+sequence = fibonacci(n)
+print(f"Fibonacci sequence (first {n} terms):")
+print(" ".join(str(x) for x in sequence))
+`;
+  addChild(nodes, scriptsDir.id, makeFile("fibonacci.py", scriptsDir.id, fibScript));
+
+  const skillsScript = `# skills_summary.py
+skills = {
+    "Languages":       ["TypeScript", "JavaScript", "Python", "Java", "C++", "SQL"],
+    "Frameworks":      ["React", "Next.js", "Node.js", "Express", "Django"],
+    "Tools":           ["Git", "Docker", "AWS", "Linux", "PostgreSQL", "MongoDB"],
+    "Other":           ["REST APIs", "GraphQL", "CI/CD", "Agile/Scrum", "System Design"],
+}
+
+print("=== Skills Summary ===")
+for category, items in skills.items():
+    print(f"\\n{category}:")
+    for item in items:
+        print(f"  - {item}")
+`;
+  addChild(nodes, scriptsDir.id, makeFile("skills_summary.py", scriptsDir.id, skillsScript));
+
   // --- /home/user/Pictures ---
   const picturesDir = makeDir("Pictures", user.id);
   addChild(nodes, user.id, picturesDir);

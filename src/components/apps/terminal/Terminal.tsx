@@ -19,6 +19,7 @@ import TerminalInput from "./TerminalInput";
 
 export default function Terminal() {
   const [outputLines, setOutputLines] = useState<OutputLine[]>(MOTD);
+  const [isPending, setIsPending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
 
@@ -36,9 +37,9 @@ export default function Terminal() {
   }, [outputLines]);
 
   const handleCommand = useCallback(
-    (input: string) => {
+    async (input: string) => {
       const trimmed = input.trim();
-      if (!trimmed) return;
+      if (!trimmed || isPending) return;
 
       dispatch(pushHistory(trimmed));
 
@@ -52,23 +53,30 @@ export default function Terminal() {
         return;
       }
 
-      const result = executeCommand(trimmed, {
-        fs,
-        cwd,
-        dispatch,
-        setCwd: (path: string) => dispatch(setCwd(path)),
-        openWindow: (appType, props) => dispatch(openWindow({ appType, appProps: props })),
-        createFile: (parentId, name, content) => dispatch(createFile({ parentId, name, content })),
-        createDirectory: (parentId, name) => dispatch(createDirectory({ parentId, name })),
-        deleteNode: (nodeId) => dispatch(deleteNode(nodeId)),
-        copyNode: (nodeId, newParentId) => dispatch(copyNode({ nodeId, newParentId })),
-        renameNode: (nodeId, newName) => dispatch(renameNode({ nodeId, newName })),
-        moveNode: (nodeId, newParentId) => dispatch(moveNode({ nodeId, newParentId })),
-      });
+      setOutputLines((prev) => [...prev, promptLine]);
+      setIsPending(true);
 
-      setOutputLines((prev) => [...prev, promptLine, ...result]);
+      try {
+        const result = await executeCommand(trimmed, {
+          fs,
+          cwd,
+          dispatch,
+          setCwd: (path: string) => dispatch(setCwd(path)),
+          openWindow: (appType, props) => dispatch(openWindow({ appType, appProps: props })),
+          createFile: (parentId, name, content) =>
+            dispatch(createFile({ parentId, name, content })),
+          createDirectory: (parentId, name) => dispatch(createDirectory({ parentId, name })),
+          deleteNode: (nodeId) => dispatch(deleteNode(nodeId)),
+          copyNode: (nodeId, newParentId) => dispatch(copyNode({ nodeId, newParentId })),
+          renameNode: (nodeId, newName) => dispatch(renameNode({ nodeId, newName })),
+          moveNode: (nodeId, newParentId) => dispatch(moveNode({ nodeId, newParentId })),
+        });
+        setOutputLines((prev) => [...prev, ...result]);
+      } finally {
+        setIsPending(false);
+      }
     },
-    [cwd, username, hostname, fs, dispatch]
+    [cwd, username, hostname, fs, dispatch, isPending]
   );
 
   const navigateHistory = useCallback(
@@ -96,6 +104,7 @@ export default function Terminal() {
           prompt={`${username}@${hostname}:${cwd}$`}
           onSubmit={handleCommand}
           onNavigateHistory={navigateHistory}
+          disabled={isPending}
         />
       </div>
     </div>
