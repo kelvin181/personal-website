@@ -1,16 +1,39 @@
-import type { PyodideInterface } from "pyodide";
+interface PyodideInterface {
+  runPythonAsync(code: string): Promise<unknown>;
+  loadPackage(name: string, options?: { checkIntegrity?: boolean }): Promise<void>;
+}
+
+declare global {
+  interface Window {
+    loadPyodide?: (options: { indexURL: string; fullStdLib: boolean }) => Promise<PyodideInterface>;
+  }
+}
+
+const CDN_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.0/full/";
 
 let pyodide: PyodideInterface | null = null;
 let loadPromise: Promise<PyodideInterface> | null = null;
+
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(script);
+  });
+}
 
 async function getPyodide(): Promise<PyodideInterface> {
   if (pyodide) return pyodide;
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
-    const { loadPyodide } = await import("pyodide");
-    pyodide = await loadPyodide({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.27.0/full/",
+    if (!window.loadPyodide) {
+      await loadScript(`${CDN_URL}pyodide.js`);
+    }
+    pyodide = await window.loadPyodide!({
+      indexURL: CDN_URL,
       fullStdLib: false,
     });
     return pyodide;
