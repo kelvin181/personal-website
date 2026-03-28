@@ -15,6 +15,9 @@ let pyodide: PyodideInterface | null = null;
 let loadPromise: Promise<PyodideInterface> | null = null;
 
 function loadScript(src: string): Promise<void> {
+  if (document.querySelector(`script[src="${src}"]`)) {
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = src;
