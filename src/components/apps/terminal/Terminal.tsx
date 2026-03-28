@@ -20,6 +20,7 @@ import TerminalInput from "./TerminalInput";
 export default function Terminal() {
   const [outputLines, setOutputLines] = useState<OutputLine[]>(MOTD);
   const [isPending, setIsPending] = useState(false);
+  const isPendingRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
 
@@ -39,7 +40,7 @@ export default function Terminal() {
   const handleCommand = useCallback(
     async (input: string) => {
       const trimmed = input.trim();
-      if (!trimmed || isPending) return;
+      if (!trimmed || isPendingRef.current) return;
 
       dispatch(pushHistory(trimmed));
 
@@ -54,6 +55,7 @@ export default function Terminal() {
       }
 
       setOutputLines((prev) => [...prev, promptLine]);
+      isPendingRef.current = true;
       setIsPending(true);
 
       try {
@@ -73,10 +75,11 @@ export default function Terminal() {
         });
         setOutputLines((prev) => [...prev, ...result]);
       } finally {
+        isPendingRef.current = false;
         setIsPending(false);
       }
     },
-    [cwd, username, hostname, fs, dispatch, isPending]
+    [cwd, username, hostname, fs, dispatch]
   );
 
   const navigateHistory = useCallback(
