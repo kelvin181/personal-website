@@ -11,6 +11,7 @@ import WallpaperPicker from "./WallpaperPicker";
 import Terminal from "@/components/apps/terminal/Terminal";
 import FileManager from "@/components/apps/file-manager/FileManager";
 import TextViewer from "@/components/apps/text-viewer/TextViewer";
+import PythonEditor from "@/components/apps/python-editor/PythonEditor";
 
 function AppContent({
   appType,
@@ -27,6 +28,13 @@ function AppContent({
     case "text-viewer":
       return (
         <TextViewer
+          key={appProps?.fileId as string | undefined}
+          fileId={appProps?.fileId as string | undefined}
+        />
+      );
+    case "python-editor":
+      return (
+        <PythonEditor
           key={appProps?.fileId as string | undefined}
           fileId={appProps?.fileId as string | undefined}
         />

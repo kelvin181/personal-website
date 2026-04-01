@@ -166,7 +166,7 @@ export default function FileManager({ initialPath }: FileManagerProps) {
         const filePath = currentPath === "/" ? `/${node.name}` : `${currentPath}/${node.name}`;
         dispatch(
           openWindow({
-            appType: "text-viewer",
+            appType: node.extension === "py" ? "python-editor" : "text-viewer",
             title: node.name,
             appProps: { fileId: node.id, filePath },
           })
