@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { isFile } from "@/lib/filesystem/types";
 import { updateFileContent } from "@/store/filesystemSlice";
-import { runPython } from "@/lib/python/pyodide";
+import { runPython, isPyodideLoaded } from "@/lib/python/pyodide";
 
 interface PythonEditorProps {
   fileId?: string;
@@ -110,7 +110,11 @@ export default function PythonEditor({ fileId }: PythonEditorProps) {
           {output === null && runError === null && !isRunning && (
             <span className="text-terminal-dim">Run your script to see output here.</span>
           )}
-          {isRunning && <span className="text-terminal-dim">Running...</span>}
+          {isRunning && (
+            <span className="text-terminal-dim">
+              {isPyodideLoaded() ? "Running..." : "Loading Python runtime..."}
+            </span>
+          )}
           {output !== null && (
             <pre className="text-terminal-text whitespace-pre-wrap">{output || "(no output)"}</pre>
           )}
