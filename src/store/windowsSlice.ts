@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { v4 as uuidv4 } from "uuid";
 
-export type AppType = "terminal" | "file-manager" | "text-viewer";
+export type AppType = "terminal" | "file-manager" | "text-viewer" | "python-editor";
 export type WindowState = "normal" | "minimized" | "maximized";
 
 export interface WindowPosition {
@@ -34,12 +34,14 @@ const DEFAULT_SIZES: Record<AppType, WindowSize> = {
   terminal: { width: 700, height: 450 },
   "file-manager": { width: 650, height: 450 },
   "text-viewer": { width: 600, height: 500 },
+  "python-editor": { width: 700, height: 520 },
 };
 
 const DEFAULT_TITLES: Record<AppType, string> = {
   terminal: "Terminal",
   "file-manager": "File Manager",
   "text-viewer": "Text Viewer",
+  "python-editor": "Python Editor",
 };
 
 let offsetCounter = 0;
