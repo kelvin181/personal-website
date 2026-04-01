@@ -33,12 +33,7 @@ function AppContent({
         />
       );
     case "python-editor":
-      return (
-        <PythonEditor
-          key={appProps?.fileId as string | undefined}
-          fileId={appProps?.fileId as string | undefined}
-        />
-      );
+      return <PythonEditor fileId={appProps?.fileId as string | undefined} />;
     default:
       return <div className="p-4 text-terminal-error">Unknown app: {appType}</div>;
   }
