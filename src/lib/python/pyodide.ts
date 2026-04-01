@@ -70,12 +70,16 @@ function wrapWithStdoutCapture(code: string): string {
   );
 }
 
+export function isPyodideLoaded(): boolean {
+  return pyodide !== null;
+}
+
 export async function runPython(code: string): Promise<{ output: string; error: string | null }> {
   const py = await getPyodide();
 
   // Auto-load micropip if code uses it — regex matches real import statements only,
   // ignoring occurrences inside comments or string literals.
-  if (/^\s*import\s+micropip\b/m.test(code)) {
+  if (/^\s*(import\s+micropip\b|from\s+micropip\b)/m.test(code)) {
     await py.loadPackage("micropip", { checkIntegrity: false });
   }
 
