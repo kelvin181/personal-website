@@ -164,6 +164,21 @@ describe("PythonEditor — Run button interactions", () => {
     });
   });
 
+  it("shows error and re-enables Run button when runPython rejects (e.g. CDN failure)", async () => {
+    mockRunPython.mockRejectedValue(new Error("Failed to load pyodide.js"));
+    renderEditor(FILE_ID, true);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to load pyodide.js")).toBeDefined();
+    });
+    // Run button must be re-enabled
+    expect((screen.getByRole("button") as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("shows 'Loading Python runtime...' while running if Pyodide is not yet loaded", async () => {
     mockIsPyodideLoaded.mockReturnValue(false);
     let resolveRun!: (v: { output: string; error: null }) => void;
