@@ -46,6 +46,29 @@ export default function PythonEditor({ fileId }: PythonEditorProps) {
     return () => clearTimeout(timer);
   }, [draft, fileId, dispatch, savedContent]);
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Tab") return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    const { selectionStart, selectionEnd, value } = el;
+    if (!e.shiftKey) {
+      const next = value.slice(0, selectionStart) + "    " + value.slice(selectionEnd);
+      setDraft(next);
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = selectionStart + 4;
+      });
+    } else {
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const leadingSpaces = value.slice(lineStart).match(/^ {1,4}/)?.[0] ?? "";
+      if (!leadingSpaces.length) return;
+      const next = value.slice(0, lineStart) + value.slice(lineStart + leadingSpaces.length);
+      setDraft(next);
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = selectionStart - leadingSpaces.length;
+      });
+    }
+  }
+
   async function handleRun() {
     if (!fileId) return;
     // Flush save immediately before running
@@ -96,6 +119,7 @@ export default function PythonEditor({ fileId }: PythonEditorProps) {
       <textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
         className="flex-1 min-h-0 w-full p-4 bg-transparent text-terminal-text text-sm resize-none outline-none"
         spellCheck={false}
         autoFocus

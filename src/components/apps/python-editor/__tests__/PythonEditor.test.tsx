@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { render, screen, cleanup, fireEvent, act, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import filesystemReducer from "@/store/filesystemSlice";
@@ -9,8 +9,12 @@ import desktopReducer from "@/store/desktopSlice";
 import clipboardReducer from "@/store/clipboardSlice";
 import PythonEditor from "../PythonEditor";
 
+const mockRunPython = vi.fn().mockResolvedValue({ output: "Hello", error: null });
+const mockIsPyodideLoaded = vi.fn().mockReturnValue(false);
+
 vi.mock("@/lib/python/pyodide", () => ({
-  runPython: vi.fn().mockResolvedValue({ output: "Hello", error: null }),
+  runPython: (...args: unknown[]) => mockRunPython(...args),
+  isPyodideLoaded: () => mockIsPyodideLoaded(),
 }));
 
 const FILE_ID = "test-file-id";
@@ -115,5 +119,169 @@ describe("PythonEditor", () => {
   it("shows the filename in the toolbar", () => {
     renderEditor(FILE_ID, true);
     expect(screen.getByText("hello.py")).toBeDefined();
+  });
+});
+
+describe("PythonEditor — Run button interactions", () => {
+  afterEach(cleanup);
+
+  it("shows output after clicking Run", async () => {
+    mockRunPython.mockResolvedValue({ output: "Hello World\n", error: null });
+    renderEditor(FILE_ID, true);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Hello World/)).toBeDefined();
+    });
+  });
+
+  it("shows error after clicking Run when Python throws", async () => {
+    mockRunPython.mockResolvedValue({ output: "", error: "NameError: name 'foo' is not defined" });
+    renderEditor(FILE_ID, true);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("NameError: name 'foo' is not defined")).toBeDefined();
+    });
+  });
+
+  it("shows '(no output)' when script runs successfully with no stdout", async () => {
+    mockRunPython.mockResolvedValue({ output: "", error: null });
+    renderEditor(FILE_ID, true);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("(no output)")).toBeDefined();
+    });
+  });
+
+  it("shows 'Loading Python runtime...' while running if Pyodide is not yet loaded", async () => {
+    mockIsPyodideLoaded.mockReturnValue(false);
+    let resolveRun!: (v: { output: string; error: null }) => void;
+    mockRunPython.mockReturnValue(
+      new Promise((res) => {
+        resolveRun = res;
+      })
+    );
+    renderEditor(FILE_ID, true);
+
+    fireEvent.click(screen.getByRole("button"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Loading Python runtime...")).toBeDefined();
+    });
+
+    await act(async () => {
+      resolveRun({ output: "done", error: null });
+    });
+  });
+});
+
+describe("PythonEditor — autosave debounce", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    cleanup();
+  });
+
+  it("does not save immediately on keystroke", () => {
+    const store = makeStore(true);
+    render(
+      <Provider store={store}>
+        <PythonEditor fileId={FILE_ID} />
+      </Provider>
+    );
+
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "x = 1" } });
+
+    // Before timer fires, Redux content is still the original
+    expect(
+      (store.getState() as { filesystem: { nodes: Record<string, { content?: string }> } })
+        .filesystem.nodes[FILE_ID].content
+    ).toBe(FILE_CONTENT);
+  });
+
+  it("saves to Redux after 500ms debounce", () => {
+    const store = makeStore(true);
+    render(
+      <Provider store={store}>
+        <PythonEditor fileId={FILE_ID} />
+      </Provider>
+    );
+
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "x = 42" } });
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(
+      (store.getState() as { filesystem: { nodes: Record<string, { content?: string }> } })
+        .filesystem.nodes[FILE_ID].content
+    ).toBe("x = 42");
+  });
+});
+
+describe("PythonEditor — Tab key handling", () => {
+  afterEach(cleanup);
+
+  it("inserts 4 spaces on Tab keydown", () => {
+    renderEditor(FILE_ID, true);
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    // Set cursor at start
+    textarea.setSelectionRange(0, 0);
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    // Draft should now start with 4 spaces prepended at cursor position 0
+    expect(textarea.value.startsWith("    ")).toBe(true);
+  });
+
+  it("does not move focus on Tab keydown", () => {
+    renderEditor(FILE_ID, true);
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    textarea.focus();
+
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    expect(document.activeElement).toBe(textarea);
+  });
+
+  it("removes up to 4 leading spaces on Shift+Tab", () => {
+    const store = makeStore(true);
+    // Preload file with indented content
+    const { rerender } = render(
+      <Provider store={store}>
+        <PythonEditor fileId={FILE_ID} />
+      </Provider>
+    );
+
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    // Set the textarea value to indented content and simulate change
+    fireEvent.change(textarea, { target: { value: "    x = 1" } });
+    rerender(
+      <Provider store={store}>
+        <PythonEditor fileId={FILE_ID} />
+      </Provider>
+    );
+
+    // Place cursor at position 4 (after spaces)
+    textarea.setSelectionRange(4, 4);
+    fireEvent.keyDown(textarea, { key: "Tab", shiftKey: true });
+
+    expect(textarea.value.startsWith("    ")).toBe(false);
   });
 });
