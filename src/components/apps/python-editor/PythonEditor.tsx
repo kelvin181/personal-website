@@ -76,12 +76,17 @@ export default function PythonEditor({ fileId }: PythonEditorProps) {
     setIsRunning(true);
     setOutput(null);
     setRunError(null);
-    const result = await runPython(draft);
-    setIsRunning(false);
-    if (result.error) {
-      setRunError(result.error);
-    } else {
-      setOutput(result.output);
+    try {
+      const result = await runPython(draft);
+      if (result.error) {
+        setRunError(result.error);
+      } else {
+        setOutput(result.output);
+      }
+    } catch (err: unknown) {
+      setRunError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsRunning(false);
     }
   }
 
