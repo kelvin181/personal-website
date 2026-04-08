@@ -47,6 +47,11 @@ export default function PythonEditor({ fileId }: PythonEditorProps) {
   }, [draft, fileId, dispatch, savedContent]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleRun();
+      return;
+    }
     if (e.key !== "Tab") return;
     e.preventDefault();
     const el = e.currentTarget;

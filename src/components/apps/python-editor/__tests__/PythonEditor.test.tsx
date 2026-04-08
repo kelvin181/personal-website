@@ -250,6 +250,38 @@ describe("PythonEditor — autosave debounce", () => {
   });
 });
 
+describe("PythonEditor — Ctrl+Enter shortcut", () => {
+  afterEach(cleanup);
+
+  it("triggers run on Ctrl+Enter", async () => {
+    mockRunPython.mockResolvedValue({ output: "ok", error: null });
+    renderEditor(FILE_ID, true);
+    const textarea = screen.getByRole("textbox");
+
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+    });
+
+    await waitFor(() => {
+      expect(mockRunPython).toHaveBeenCalled();
+    });
+  });
+
+  it("triggers run on Meta+Enter (Mac Cmd+Enter)", async () => {
+    mockRunPython.mockResolvedValue({ output: "ok", error: null });
+    renderEditor(FILE_ID, true);
+    const textarea = screen.getByRole("textbox");
+
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+    });
+
+    await waitFor(() => {
+      expect(mockRunPython).toHaveBeenCalled();
+    });
+  });
+});
+
 describe("PythonEditor — Tab key handling", () => {
   afterEach(cleanup);
 
