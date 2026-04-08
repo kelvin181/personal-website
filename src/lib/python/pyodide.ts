@@ -1,6 +1,7 @@
 interface PyodideInterface {
   runPythonAsync(code: string): Promise<unknown>;
   loadPackage(name: string, options?: { checkIntegrity?: boolean }): Promise<void>;
+  globals: { set(name: string, value: unknown): void };
 }
 
 declare global {
@@ -52,23 +53,18 @@ async function getPyodide(): Promise<PyodideInterface> {
 // Wrap user code in a try/finally that captures stdout into a StringIO buffer,
 // restores the original stdout even if the code throws, then returns the buffer
 // contents as the last expression (Pyodide returns the last evaluated expression).
-function wrapWithStdoutCapture(code: string): string {
-  const indented = code
-    .split("\n")
-    .map((line) => "    " + line)
-    .join("\n");
-  return (
-    "import sys, io as _io\n" +
-    "_old_stdout = sys.stdout\n" +
-    "_buf = _io.StringIO()\n" +
-    "sys.stdout = _buf\n" +
-    "try:\n" +
-    indented +
-    "\nfinally:\n" +
-    "    sys.stdout = _old_stdout\n" +
-    "_buf.getvalue()"
-  );
-}
+// User code is passed via the `_user_code` global to avoid indenting it, which
+// would corrupt multiline string literals.
+const STDOUT_CAPTURE_WRAPPER =
+  "import sys, io as _io\n" +
+  "_old_stdout = sys.stdout\n" +
+  "_buf = _io.StringIO()\n" +
+  "sys.stdout = _buf\n" +
+  "try:\n" +
+  "    exec(compile(_user_code, '<string>', 'exec'), {'__name__': '__main__'})\n" +
+  "finally:\n" +
+  "    sys.stdout = _old_stdout\n" +
+  "_buf.getvalue()";
 
 export function isPyodideLoaded(): boolean {
   return pyodide !== null;
@@ -84,7 +80,8 @@ export async function runPython(code: string): Promise<{ output: string; error: 
   }
 
   try {
-    const output = (await py.runPythonAsync(wrapWithStdoutCapture(code))) as string;
+    py.globals.set("_user_code", code);
+    const output = (await py.runPythonAsync(STDOUT_CAPTURE_WRAPPER)) as string;
     return { output, error: null };
   } catch (err: unknown) {
     return {

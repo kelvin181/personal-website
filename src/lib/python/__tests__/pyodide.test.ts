@@ -6,7 +6,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 function makeMockPyodide() {
   const runPythonAsync = vi.fn();
   const loadPackage = vi.fn().mockResolvedValue(undefined);
-  return { runPythonAsync, loadPackage };
+  const globals = { set: vi.fn() };
+  return { runPythonAsync, loadPackage, globals };
 }
 
 beforeEach(() => {
@@ -50,7 +51,7 @@ describe("runPython — successful execution", () => {
 });
 
 describe("runPython — stdout capture", () => {
-  it("wraps user code with stdout capture and restore", async () => {
+  it("passes user code via globals and runs the capture wrapper", async () => {
     const mock = makeMockPyodide();
     mock.runPythonAsync.mockResolvedValue("");
     window.loadPyodide = vi.fn().mockResolvedValue(mock);
@@ -58,13 +59,17 @@ describe("runPython — stdout capture", () => {
     const runPython = await importRunPython();
     await runPython("print('test')");
 
+    // User code is set on globals, not embedded in the wrapper string
+    expect(mock.globals.set).toHaveBeenCalledWith("_user_code", "print('test')");
+
     expect(mock.runPythonAsync).toHaveBeenCalledTimes(1);
     const call = mock.runPythonAsync.mock.calls[0][0] as string;
     expect(call).toContain("import sys, io as _io");
     expect(call).toContain("sys.stdout = _buf");
-    expect(call).toContain("sys.stdout = _old_stdout");
-    expect(call).toContain("print('test')");
+    expect(call).toContain("_user_code");
     expect(call).toContain("_buf.getvalue()");
+    // User code must NOT be inlined — the wrapper is a fixed template
+    expect(call).not.toContain("print('test')");
   });
 
   it("restores stdout in a finally block so it survives errors", async () => {
@@ -81,6 +86,22 @@ describe("runPython — stdout capture", () => {
     const restoreIdx = call.indexOf("sys.stdout = _old_stdout");
     expect(finallyIdx).toBeGreaterThan(-1);
     expect(restoreIdx).toBeGreaterThan(finallyIdx);
+  });
+
+  it("does not corrupt multiline string literals", async () => {
+    // The old indentation-based approach would add leading spaces to every line
+    // of the user code, changing the content of multiline strings. The globals-
+    // based approach must not modify the code at all — verify by checking that
+    // globals.set receives the original unmodified string.
+    const mock = makeMockPyodide();
+    mock.runPythonAsync.mockResolvedValue("hello\nworld\n");
+    window.loadPyodide = vi.fn().mockResolvedValue(mock);
+
+    const runPython = await importRunPython();
+    const multilineCode = 'print("""hello\nworld""")';
+    await runPython(multilineCode);
+
+    expect(mock.globals.set).toHaveBeenCalledWith("_user_code", multilineCode);
   });
 });
 
