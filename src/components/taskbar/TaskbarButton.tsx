@@ -12,6 +12,7 @@ const APP_ICONS: Record<string, string> = {
   terminal: ">_",
   "file-manager": "📁",
   "text-viewer": "📄",
+  settings: "⚙️",
 };
 
 export default function TaskbarButton({ window: win, isFocused }: TaskbarButtonProps) {
