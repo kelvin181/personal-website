@@ -74,7 +74,7 @@ export default function Settings() {
           <AboutPanel
             onResetAll={() => {
               dispatch(resetSettings());
-              window.location.reload();
+              dispatch(setWallpaper("dark"));
             }}
           />
         )}
