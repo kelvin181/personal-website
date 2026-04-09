@@ -54,7 +54,11 @@ export const store = configureStore({
   preloadedState: persisted,
 });
 
-store.subscribe(() => persistState(store.getState()));
+let persistTimer: ReturnType<typeof setTimeout>;
+store.subscribe(() => {
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => persistState(store.getState()), 300);
+});
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
