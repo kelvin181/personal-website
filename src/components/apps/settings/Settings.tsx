@@ -53,6 +53,7 @@ export default function Settings() {
       <div className="flex-1 overflow-y-auto p-4 text-terminal-fg">
         {activeSection === "system" && (
           <SystemPanel
+            key={`${username}-${hostname}`}
             username={username}
             hostname={hostname}
             onUsernameChange={(v) => dispatch(setUsername(v))}
@@ -111,6 +112,9 @@ function SystemPanel({
   onHostnameChange: (v: string) => void;
   onResetFilesystem: () => void;
 }) {
+  const [localUsername, setLocalUsername] = useState(username);
+  const [localHostname, setLocalHostname] = useState(hostname);
+
   return (
     <div>
       <div className="mb-6">
@@ -118,16 +122,18 @@ function SystemPanel({
         <SettingRow label="Username">
           <input
             className="flex-1 rounded border border-terminal-dim/30 bg-black/30 px-2 py-1 text-terminal-fg outline-none focus:border-terminal-accent"
-            value={username}
-            onChange={(e) => onUsernameChange(e.target.value)}
+            value={localUsername}
+            onChange={(e) => setLocalUsername(e.target.value)}
+            onBlur={() => onUsernameChange(localUsername)}
             spellCheck={false}
           />
         </SettingRow>
         <SettingRow label="Hostname">
           <input
             className="flex-1 rounded border border-terminal-dim/30 bg-black/30 px-2 py-1 text-terminal-fg outline-none focus:border-terminal-accent"
-            value={hostname}
-            onChange={(e) => onHostnameChange(e.target.value)}
+            value={localHostname}
+            onChange={(e) => setLocalHostname(e.target.value)}
+            onBlur={() => onHostnameChange(localHostname)}
             spellCheck={false}
           />
         </SettingRow>
