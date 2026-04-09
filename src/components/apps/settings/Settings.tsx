@@ -167,11 +167,10 @@ function AppearancePanel({
   onColorSchemeChange: (v: ColorScheme) => void;
 }) {
   const fontSizes: FontSize[] = ["small", "medium", "large"];
-  const colorSchemes: { id: ColorScheme; label: string }[] = [
-    { id: "default", label: "Default" },
-    { id: "amber", label: "Amber" },
-    { id: "dracula", label: "Dracula" },
-  ];
+  const colorSchemes = (Object.keys(COLOR_SCHEMES) as ColorScheme[]).map((id) => ({
+    id,
+    label: id.charAt(0).toUpperCase() + id.slice(1),
+  }));
 
   return (
     <div>
