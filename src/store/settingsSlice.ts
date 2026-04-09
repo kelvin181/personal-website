@@ -7,12 +7,13 @@ export interface ColorSchemeDefinition {
   fg: string;
   accent: string;
   bg: string;
+  dim: string;
 }
 
 export const COLOR_SCHEMES: Record<ColorScheme, ColorSchemeDefinition> = {
-  default: { fg: "#39ff14", accent: "#00bfff", bg: "#0d1117" },
-  amber: { fg: "#ffb300", accent: "#ff8c00", bg: "#0d0a00" },
-  dracula: { fg: "#f8f8f2", accent: "#bd93f9", bg: "#282a36" },
+  default: { fg: "#39ff14", accent: "#00bfff", bg: "#0d1117", dim: "#4a5568" },
+  amber: { fg: "#ffb300", accent: "#ff8c00", bg: "#0d0a00", dim: "#6b5a2a" },
+  dracula: { fg: "#f8f8f2", accent: "#bd93f9", bg: "#282a36", dim: "#6272a4" },
 };
 
 export const FONT_SIZES: Record<FontSize, string> = {

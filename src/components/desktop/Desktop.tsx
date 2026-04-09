@@ -87,6 +87,7 @@ export default function Desktop() {
           "--color-terminal-fg": scheme.fg,
           "--color-terminal-accent": scheme.accent,
           "--color-terminal-bg": scheme.bg,
+          "--color-terminal-dim": scheme.dim,
         } as React.CSSProperties
       }
       onContextMenu={handleContextMenu}
