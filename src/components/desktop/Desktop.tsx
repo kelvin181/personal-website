@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { WALLPAPERS } from "@/store/desktopSlice";
 import { COLOR_SCHEMES, FONT_SIZES } from "@/store/settingsSlice";
@@ -54,6 +54,10 @@ export default function Desktop() {
 
   const scheme = COLOR_SCHEMES[colorScheme];
 
+  useEffect(() => {
+    document.documentElement.style.fontSize = FONT_SIZES[fontSize];
+  }, [fontSize]);
+
   let backgroundStyle: string;
   if (wallpaperKey === "custom" && wallpaperNodeId) {
     const node = filesystem.nodes[wallpaperNodeId];
@@ -83,7 +87,6 @@ export default function Desktop() {
           "--color-terminal-fg": scheme.fg,
           "--color-terminal-accent": scheme.accent,
           "--color-terminal-bg": scheme.bg,
-          fontSize: FONT_SIZES[fontSize],
         } as React.CSSProperties
       }
       onContextMenu={handleContextMenu}
