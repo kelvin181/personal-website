@@ -75,6 +75,8 @@ export default function Settings() {
             onResetAll={() => {
               dispatch(resetSettings());
               dispatch(setWallpaper("dark"));
+              dispatch(setUsername("visitor"));
+              dispatch(setHostname("kelvin-os"));
             }}
           />
         )}
