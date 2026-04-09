@@ -27,6 +27,11 @@ function persistState(state: ReturnType<typeof store.getState>) {
         session: {
           username: state.session.username,
           hostname: state.session.hostname,
+          cwd: state.session.cwd,
+        },
+        desktop: {
+          wallpaper: state.desktop.wallpaper,
+          wallpaperNodeId: state.desktop.wallpaperNodeId,
         },
       })
     );
