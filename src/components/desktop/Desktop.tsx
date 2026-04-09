@@ -55,8 +55,13 @@ export default function Desktop() {
   const scheme = COLOR_SCHEMES[colorScheme];
 
   useEffect(() => {
-    document.documentElement.style.fontSize = FONT_SIZES[fontSize];
-  }, [fontSize]);
+    const root = document.documentElement;
+    root.style.fontSize = FONT_SIZES[fontSize] ?? "14px";
+    root.style.setProperty("--color-terminal-fg", scheme.fg);
+    root.style.setProperty("--color-terminal-accent", scheme.accent);
+    root.style.setProperty("--color-terminal-bg", scheme.bg);
+    root.style.setProperty("--color-terminal-dim", scheme.dim);
+  }, [fontSize, colorScheme]);
 
   let backgroundStyle: string;
   if (wallpaperKey === "custom" && wallpaperNodeId) {
@@ -81,15 +86,7 @@ export default function Desktop() {
   return (
     <div
       className="relative h-screen w-screen overflow-hidden pb-10"
-      style={
-        {
-          background: backgroundStyle,
-          "--color-terminal-fg": scheme.fg,
-          "--color-terminal-accent": scheme.accent,
-          "--color-terminal-bg": scheme.bg,
-          "--color-terminal-dim": scheme.dim,
-        } as React.CSSProperties
-      }
+      style={{ background: backgroundStyle }}
       onContextMenu={handleContextMenu}
     >
       {/* Desktop Icons */}
