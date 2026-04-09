@@ -30,9 +30,16 @@ const sessionSlice = createSlice({
     setHistoryIndex(state, action: PayloadAction<number>) {
       state.historyIndex = action.payload;
     },
+    setUsername(state, action: PayloadAction<string>) {
+      state.username = action.payload;
+    },
+    setHostname(state, action: PayloadAction<string>) {
+      state.hostname = action.payload;
+    },
   },
 });
 
-export const { setCwd, pushHistory, setHistoryIndex } = sessionSlice.actions;
+export const { setCwd, pushHistory, setHistoryIndex, setUsername, setHostname } =
+  sessionSlice.actions;
 
 export default sessionSlice.reducer;
