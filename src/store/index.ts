@@ -1,4 +1,4 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import filesystemReducer from "./filesystemSlice";
 import windowsReducer from "./windowsSlice";
 import sessionReducer from "./sessionSlice";
@@ -40,17 +40,19 @@ function persistState(state: ReturnType<typeof store.getState>) {
   }
 }
 
+const rootReducer = combineReducers({
+  filesystem: filesystemReducer,
+  windows: windowsReducer,
+  session: sessionReducer,
+  desktop: desktopReducer,
+  clipboard: clipboardReducer,
+  settings: settingsReducer,
+});
+
 const persisted = loadPersistedState();
 
 export const store = configureStore({
-  reducer: {
-    filesystem: filesystemReducer,
-    windows: windowsReducer,
-    session: sessionReducer,
-    desktop: desktopReducer,
-    clipboard: clipboardReducer,
-    settings: settingsReducer,
-  },
+  reducer: rootReducer,
   preloadedState: persisted,
 });
 
