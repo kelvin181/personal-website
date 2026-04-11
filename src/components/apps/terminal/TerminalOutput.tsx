@@ -7,11 +7,12 @@ interface TerminalOutputProps {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  output: "text-terminal-fg",
+  output: "text-terminal-input",
   error: "text-terminal-error",
-  success: "text-terminal-fg",
+  success: "text-terminal-input",
   info: "text-terminal-accent",
-  prompt: "text-terminal-dim",
+  prompt: "text-terminal-fg",
+  command: "text-terminal-input",
   heading: "text-terminal-fg font-bold",
   dim: "text-terminal-dim",
   link: "text-terminal-accent",
@@ -24,9 +25,15 @@ export default function TerminalOutput({ lines }: TerminalOutputProps) {
       {lines.map((line, i) => (
         <div
           key={i}
-          className={`${TYPE_COLORS[line.type] || "text-terminal-fg"} whitespace-pre-wrap break-words leading-relaxed`}
+          className={`${!line.parts ? TYPE_COLORS[line.type] || "text-terminal-input" : ""} whitespace-pre-wrap break-words leading-relaxed`}
         >
-          {line.text}
+          {line.parts
+            ? line.parts.map((part, j) => (
+                <span key={j} className={TYPE_COLORS[part.type] || "text-terminal-input"}>
+                  {part.text}
+                </span>
+              ))
+            : line.text}
         </div>
       ))}
     </div>

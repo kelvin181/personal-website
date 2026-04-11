@@ -43,9 +43,7 @@ export default function TerminalInput({
 
   return (
     <div className="flex items-center gap-2 cursor-text" onClick={handleContainerClick}>
-      <span
-        className={`whitespace-nowrap shrink-0 ${disabled ? "text-terminal-dim" : "text-terminal-fg"}`}
-      >
+      <span className="whitespace-nowrap shrink-0 text-terminal-fg">
         {disabled ? `${prompt} ...` : prompt}
       </span>
       <input
@@ -55,8 +53,8 @@ export default function TerminalInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`flex-1 bg-transparent outline-none border-none font-mono text-sm caret-terminal-fg ${
-          disabled ? "text-terminal-dim opacity-50 cursor-not-allowed" : "text-terminal-fg"
+        className={`flex-1 bg-transparent outline-none border-none font-mono text-sm caret-terminal-input text-terminal-input ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
         spellCheck={false}
         autoComplete="off"
