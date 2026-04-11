@@ -13,7 +13,7 @@ const TYPE_COLORS: Record<string, string> = {
   info: "text-terminal-accent",
   prompt: "text-terminal-fg",
   command: "text-terminal-input",
-  heading: "text-terminal-fg font-bold",
+  heading: "text-terminal-accent font-bold",
   dim: "text-terminal-dim",
   link: "text-terminal-accent",
   warning: "text-terminal-warning",
