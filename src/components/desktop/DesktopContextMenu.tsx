@@ -38,6 +38,10 @@ export default function DesktopContextMenu({
       label: "Change Wallpaper",
       action: onChangeWallpaper,
     },
+    {
+      label: "Settings",
+      action: () => dispatch(openWindow({ appType: "settings" })),
+    },
   ];
 
   // Clamp menu position to viewport

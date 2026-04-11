@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { WALLPAPERS } from "@/store/desktopSlice";
+import { FONT_SIZES } from "@/store/settingsSlice";
 import Window from "@/components/window/Window";
 import Taskbar from "@/components/taskbar/Taskbar";
 import DesktopIcon from "./DesktopIcon";
@@ -12,6 +13,7 @@ import Terminal from "@/components/apps/terminal/Terminal";
 import FileManager from "@/components/apps/file-manager/FileManager";
 import TextViewer from "@/components/apps/text-viewer/TextViewer";
 import PythonEditor from "@/components/apps/python-editor/PythonEditor";
+import Settings from "@/components/apps/settings/Settings";
 
 function AppContent({
   appType,
@@ -34,6 +36,8 @@ function AppContent({
       );
     case "python-editor":
       return <PythonEditor fileId={appProps?.fileId as string | undefined} />;
+    case "settings":
+      return <Settings />;
     default:
       return <div className="p-4 text-terminal-error">Unknown app: {appType}</div>;
   }
@@ -44,8 +48,14 @@ export default function Desktop() {
   const wallpaperKey = useAppSelector((s) => s.desktop.wallpaper);
   const wallpaperNodeId = useAppSelector((s) => s.desktop.wallpaperNodeId);
   const filesystem = useAppSelector((s) => s.filesystem);
+  const { fontSize } = useAppSelector((s) => s.settings);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.fontSize = FONT_SIZES[fontSize] ?? "14px";
+  }, [fontSize]);
 
   let backgroundStyle: string;
   if (wallpaperKey === "custom" && wallpaperNodeId) {
@@ -77,6 +87,7 @@ export default function Desktop() {
       <div className="absolute top-4 left-4 flex flex-col gap-1">
         <DesktopIcon appType="terminal" label="Terminal" icon=">_" />
         <DesktopIcon appType="file-manager" label="Files" icon="📁" />
+        <DesktopIcon appType="settings" label="Settings" icon="⚙️" />
       </div>
 
       {/* Windows */}

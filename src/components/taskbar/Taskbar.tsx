@@ -34,6 +34,13 @@ export default function Taskbar() {
         >
           📁
         </button>
+        <button
+          onClick={() => dispatch(openWindow({ appType: "settings" }))}
+          className="px-2 py-1 text-xs hover:bg-white/5 rounded transition-colors"
+          title="Open Settings"
+        >
+          ⚙️
+        </button>
       </div>
 
       <div className="h-4 w-px bg-window-border" />
