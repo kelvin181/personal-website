@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import {
-  setFontSize,
-  setColorScheme,
-  resetSettings,
-  COLOR_SCHEMES,
-  FontSize,
-  ColorScheme,
-} from "@/store/settingsSlice";
+import { setFontSize, resetSettings, FontSize } from "@/store/settingsSlice";
 import { setUsername, setHostname } from "@/store/sessionSlice";
 import { setWallpaper, WALLPAPERS } from "@/store/desktopSlice";
 import { resetFilesystem } from "@/store/filesystemSlice";
@@ -25,7 +18,7 @@ const NAV_ITEMS: { id: Section; label: string }[] = [
 export default function Settings() {
   const dispatch = useAppDispatch();
   const [activeSection, setActiveSection] = useState<Section>("system");
-  const { fontSize, colorScheme } = useAppSelector((s) => s.settings);
+  const { fontSize } = useAppSelector((s) => s.settings);
   const { username, hostname } = useAppSelector((s) => s.session);
   const wallpaper = useAppSelector((s) => s.desktop.wallpaper);
 
@@ -65,10 +58,8 @@ export default function Settings() {
           <AppearancePanel
             wallpaper={wallpaper}
             fontSize={fontSize}
-            colorScheme={colorScheme}
             onWallpaperChange={(k) => dispatch(setWallpaper(k))}
             onFontSizeChange={(v) => dispatch(setFontSize(v))}
-            onColorSchemeChange={(v) => dispatch(setColorScheme(v))}
           />
         )}
         {activeSection === "about" && (
@@ -154,23 +145,15 @@ function SystemPanel({
 function AppearancePanel({
   wallpaper,
   fontSize,
-  colorScheme,
   onWallpaperChange,
   onFontSizeChange,
-  onColorSchemeChange,
 }: {
   wallpaper: string;
   fontSize: FontSize;
-  colorScheme: ColorScheme;
   onWallpaperChange: (k: string) => void;
   onFontSizeChange: (v: FontSize) => void;
-  onColorSchemeChange: (v: ColorScheme) => void;
 }) {
   const fontSizes: FontSize[] = ["small", "medium", "large"];
-  const colorSchemes = (Object.keys(COLOR_SCHEMES) as ColorScheme[]).map((id) => ({
-    id,
-    label: id.charAt(0).toUpperCase() + id.slice(1),
-  }));
 
   return (
     <div>
@@ -209,32 +192,6 @@ function AppearancePanel({
               {size}
             </button>
           ))}
-        </div>
-      </div>
-
-      <div>
-        <SectionHeader title="Color Scheme" />
-        <div className="flex gap-2">
-          {colorSchemes.map(({ id, label }) => {
-            const scheme = COLOR_SCHEMES[id];
-            return (
-              <button
-                key={id}
-                onClick={() => onColorSchemeChange(id)}
-                className={`flex items-center gap-2 rounded border px-3 py-1 transition-colors ${
-                  colorScheme === id
-                    ? "border-terminal-accent bg-terminal-accent/10 text-terminal-accent"
-                    : "border-terminal-dim/30 text-terminal-dim hover:border-terminal-dim hover:text-terminal-fg"
-                }`}
-              >
-                <span
-                  className="inline-block h-3 w-3 rounded-full border border-white/10"
-                  style={{ background: scheme.fg }}
-                />
-                {label}
-              </button>
-            );
-          })}
         </div>
       </div>
     </div>

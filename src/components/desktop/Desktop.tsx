@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { WALLPAPERS } from "@/store/desktopSlice";
-import { COLOR_SCHEMES, FONT_SIZES } from "@/store/settingsSlice";
+import { FONT_SIZES } from "@/store/settingsSlice";
 import Window from "@/components/window/Window";
 import Taskbar from "@/components/taskbar/Taskbar";
 import DesktopIcon from "./DesktopIcon";
@@ -48,20 +48,14 @@ export default function Desktop() {
   const wallpaperKey = useAppSelector((s) => s.desktop.wallpaper);
   const wallpaperNodeId = useAppSelector((s) => s.desktop.wallpaperNodeId);
   const filesystem = useAppSelector((s) => s.filesystem);
-  const { colorScheme, fontSize } = useAppSelector((s) => s.settings);
+  const { fontSize } = useAppSelector((s) => s.settings);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
-
-  const scheme = COLOR_SCHEMES[colorScheme];
 
   useEffect(() => {
     const root = document.documentElement;
     root.style.fontSize = FONT_SIZES[fontSize] ?? "14px";
-    root.style.setProperty("--color-terminal-fg", scheme.fg);
-    root.style.setProperty("--color-terminal-accent", scheme.accent);
-    root.style.setProperty("--color-terminal-bg", scheme.bg);
-    root.style.setProperty("--color-terminal-dim", scheme.dim);
-  }, [fontSize, colorScheme]);
+  }, [fontSize]);
 
   let backgroundStyle: string;
   if (wallpaperKey === "custom" && wallpaperNodeId) {
