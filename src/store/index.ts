@@ -6,12 +6,21 @@ import desktopReducer from "./desktopSlice";
 import clipboardReducer from "./clipboardSlice";
 import settingsReducer from "./settingsSlice";
 
+const SESSION_DEFAULTS = {
+  terminalHistory: [],
+  historyIndex: -1,
+};
+
 function loadPersistedState() {
   if (typeof window === "undefined") return undefined;
   try {
     const raw = localStorage.getItem("kelvin-os-state");
     if (!raw) return undefined;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (parsed?.session) {
+      parsed.session = { ...SESSION_DEFAULTS, ...parsed.session };
+    }
+    return parsed;
   } catch {
     return undefined;
   }

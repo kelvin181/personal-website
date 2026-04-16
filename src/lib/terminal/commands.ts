@@ -11,9 +11,25 @@ import { interests } from "@/content/data/interests";
 import { parseCommand } from "./parser";
 import { runPython } from "@/lib/python/pyodide";
 
+export interface OutputLinePart {
+  text: string;
+  type: string;
+}
+
 export interface OutputLine {
   text: string;
-  type: "output" | "error" | "success" | "info" | "prompt" | "heading" | "dim" | "link" | "warning";
+  type:
+    | "output"
+    | "error"
+    | "success"
+    | "info"
+    | "prompt"
+    | "command"
+    | "heading"
+    | "dim"
+    | "link"
+    | "warning";
+  parts?: OutputLinePart[];
 }
 
 interface CommandContext {

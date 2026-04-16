@@ -53,8 +53,12 @@ export default function Terminal() {
       dispatch(pushHistory(trimmed));
 
       const promptLine: OutputLine = {
-        text: `${username}@${hostname}:${cwd}$ ${trimmed}`,
+        text: "",
         type: "prompt",
+        parts: [
+          { text: `${username}@${hostname}:${cwd}$ `, type: "prompt" },
+          { text: trimmed, type: "command" },
+        ],
       };
 
       if (trimmed === "clear") {
