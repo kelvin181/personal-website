@@ -40,7 +40,15 @@ export default function Terminal() {
   const handleCommand = useCallback(
     async (input: string) => {
       const trimmed = input.trim();
-      if (!trimmed || isPendingRef.current) return;
+      if (isPendingRef.current) return;
+
+      if (!trimmed) {
+        setOutputLines((prev) => [
+          ...prev,
+          { text: `${username}@${hostname}:${cwd}$`, type: "prompt" as const },
+        ]);
+        return;
+      }
 
       dispatch(pushHistory(trimmed));
 
