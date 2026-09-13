@@ -12,36 +12,56 @@ export interface Education {
 export const education: Education[] = [
   {
     id: "university",
-    institution: "University of Technology",
-    degree: "Bachelor of Science",
+    institution: "University of Auckland",
+    degree: "Bachelor of Science (Honours)",
     field: "Computer Science",
-    startDate: "Sep 2020",
-    endDate: "Jun 2024",
+    startDate: "Feb 2023",
+    endDate: "Nov 2026",
     courses: [
-      "Data Structures & Algorithms",
-      "Operating Systems",
-      "Database Systems",
-      "Computer Networks",
-      "Software Engineering",
+      "Principles of Programming",
+      "Introduction to Computer Systems",
+      "Introduction to Practical Computing",
+      "Mathematics for Computer Science",
+      "Introduction to Software Fundamentals",
+      "Computer Organisation",
+      "Discrete Structures in Mathematics and Computer Science",
+      "Algorithms and Data Structures",
+      "Object Oriented Software Development",
+      "Software Development Methodologies",
       "Machine Learning",
-      "Web Development",
+      "Operating Systems",
+      "Data Communications Technologies",
+      "Applied Algorithmics",
+      "Web Programming and Distributed Services",
+      "Artificial Intelligence",
+      "Capstone: Computer Science",
     ],
-    content: `# BSc Computer Science — University of Technology
+    content: `# BSc (Hons) Computer Science — University of Auckland
 
-**Sep 2020 - Jun 2024**
+**Feb 2023 - Nov 2026**
 
 ## Relevant Courses
-- Data Structures & Algorithms
-- Operating Systems
-- Database Systems
-- Computer Networks
-- Software Engineering
+- Principles of Programming
+- Introduction to Computer Systems
+- Introduction to Practical Computing
+- Mathematics for Computer Science
+- Introduction to Software Fundamentals
+- Computer Organisation
+- Discrete Structures in Mathematics and Computer Science
+- Algorithms and Data Structures
+- Object Oriented Software Development
+- Software Development Methodologies
 - Machine Learning
-- Web Development
+- Operating Systems
+- Data Communications Technologies
+- Applied Algorithmics
+- Web Programming and Distributed Services
+- Artificial Intelligence
+- Capstone: Computer Science
 
 ## Achievements
-- Dean's List (multiple semesters)
-- Senior capstone project on distributed systems
+- Cumulative GPA: 8.75/9 (A/A+ Average)
+- First in Course Award: COMPSCI 110, COMPSCI 111, COMPSCI 210, COMPSCI 230
 `,
   },
 ];
