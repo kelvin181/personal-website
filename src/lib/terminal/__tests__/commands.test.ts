@@ -599,7 +599,7 @@ describe("interests", () => {
 describe("contact", () => {
   it("returns output lines including the email address", async () => {
     const output = await run(ctx, "contact");
-    expect(output.some((l) => l.text.includes("kelvin@example.com"))).toBe(true);
+    expect(output.some((l) => l.text.includes("kelvinc204@gmail.com"))).toBe(true);
   });
 
   it("contains no error lines", async () => {

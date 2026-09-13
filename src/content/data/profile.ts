@@ -12,13 +12,12 @@ export interface Profile {
 }
 
 export const profile: Profile = {
-  name: "Kelvin",
-  role: "Software Developer",
-  bio: "Passionate software developer who loves building things. Welcome to my OS-style portfolio — explore my projects, experience, and more through the terminal or file manager.",
+  name: "Kelvin Chen",
+  role: "Software Engineer",
+  bio: "Welcome to my OS-style portfolio",
   socials: {
-    github: "https://github.com/kelvin",
-    linkedin: "https://linkedin.com/in/kelvin",
-    email: "kelvin@example.com",
-    twitter: "https://twitter.com/kelvin",
+    github: "https://github.com/kelvin181",
+    linkedin: "https://www.linkedin.com/in/kelvin-chen8/",
+    email: "kelvinc204@gmail.com",
   },
 };
